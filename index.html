@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<!-- Based on examples by Mike Bostock, MapBox, etc. (see README.md) -->
+<!-- 
+    https://www.mapbox.com/mapbox-gl-js/example/image-on-a-map/, 
+    http://bl.ocks.org/anandthakker/69afa4bfb0c4f5778785, 
+    http://bl.ocks.org/anandthakker/52d26ae7b71b7e23c279,
+    http://bl.ocks.org/AlanPew/ac2f7753e488d8ac66d5
+ -->
+<!-- Author: Bo Ericsson, Email: bo@boe.net -->
+<head>
+  <title>License Suspensions</title>
+  <meta charset="UTF-8">
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.css' rel='stylesheet' />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+  <!--<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>
+
+  <style>
+    body {
+      margin: 0px;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    p, a {
+      font-size: 12px;
+      line-height: 12px;
+      margin: 0px
+      margin-bottom: 10px;
+    }
+    a {
+      margin-left: 10px;
+    }
+    h4 {
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+    label {
+      font-size: 12px;
+    }
+    #overlay {
+      padding: 5px;
+      position: absolute;
+      min-width: 200px;
+      max-width: 400px;
+      top: 10px;
+      left: 10px;
+      border: 1px solid gray;
+      border-radius: 5px;
+      background-color: white;
+      opacity: 0.8;
+      display: none;
+      z-index: 10000;
+    }
+    #overlay p {
+      margin: 5px;
+    }
+    #controls {
+      padding1: 5px;
+      margin-bottom: 15px;
+    }
+    #controls p {
+      margin: 5px;
+      margin-left: 0px;
+    }
+    #main {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      opacity: 0.85;
+      background-color: white;
+      border-radius: 5px;
+      padding-left: 20px;
+      padding-right: 20px;
+      padding-bottom: 20px;
+      z-index: 10000;
+      width: 300px;
+      border: 1px solid gray;
+    }
+    ul {
+      font-size: 12px;
+      padding-left: 15px;
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+    li {
+      font-style: italic;
+    }
+    #howToUse:hover {
+      color: red;
+    }
+    #map, #map2 { 
+      position: absolute; 
+      top: 0px; 
+      bottom: 0px; 
+      width: 100%; 
+      border: 1px solid black;
+    }
+    #map2 {
+      /*background-color: lightgray;*/
+      right: 0px;
+    }
+    #divider {
+      background-color: gray;
+      width: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="container">
+  <div id="map"></div>
+  <div id="divider"></div>
+  <div id="map2"></div>
+</div>
+
+<div style="position: relative; display: block">
+  <div id="main">
+    <h4 style="margin-bottom: 0px">Driver License Suspensions in</h4>
+    <h4 style="margin-top: 0px">California by Zip Code</h4>
+    <p style="margin-top: 0px; font-weight: bold">Due to "Failure to Pay" or "Failure to Appear"</p>
+    <div id="controls">
+      <p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;
+    </div>
+    <p style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">Sources</p>
+    <ul>
+      <li>East Bay Community Law Center</li>
+      <li>CA Deparment of Motor Vehicles</li>
+      <li>US Census Bureau (for geo data)</li>
+    </ul>
+
+    <p style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">Map tilt</p>
+    <input id="tiltSlider" style="width: 100%" type="range" min="0" max="60" value="0" step="1">
+
+    <p id="howToUse" style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">How to use...</p>
+    <ul id="instructions"; style="display: none">
+      <li>Move the mouse to see the specifics for the zip code</li>
+      <li>The zip code boundaries are shown for each county</li>
+      <li>The darker the zip code areas, the higher suspension rate</li>
+      <li>Zoom in/out by rolling the mouse wheel, or by using the plus/minus buttons</li>
+      <li>Pan around the map by dragging the mouse</li>
+      <li>To tilt the map, use the slider above</li>
+      <li>Rotate the map, drag the compass icon in upper right</li>
+      <li>To reset the rotation, click the compass icon</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+var counties,
+    zipcodes,
+    data,
+    zipGeo,
+    countyZips,
+    zipData;
+
+window.onload = function() { start(); }
+
+window.onresize = function() {
+  setWindowSize();
+}
+
+function setWindowSize() {
+  console.log("----", window.innerWidth, window.innerHeight)
+  var width = (window.innerWidth - 6) / 2;
+  d3.select("#map").style("width", width + "px")
+  d3.select("#map2").style("width", width + "px")
+}
+setWindowSize();
+
+
+
+function start() {
+
+  // load zip code data 
+  d3.tsv("cazipgeo.txt", function(_) {
+    zipGeo = _;
+
+    // create object for quick lookup of a county's zip codes (used by code that dynamically injects zip code geometry)
+    countyZips = {};
+    zipGeo.forEach(function(d) {
+      var key = d.County.trim(); 
+      if (countyZips[key] == undefined) countyZips[key] = [];
+      countyZips[key].push(+d.ZipCode)
+    })
+
+    // create data structure used to merge zip code and suspension data
+    var obj = {};
+    zipGeo.forEach(function(d) {
+      var key = d.ZipCode.trim(); 
+      obj[key] = d;
+      delete obj[key].ZipCode;
+    })
+    zipGeo = obj; // redefine zipGeo from array to object
+
+    // load driver license suspension data
+    d3.tsv("suspensions.txt", function(suspensions) {
+      console.log("loaded driver license suspension data...");
+
+      // merge in the zip geo data and create main data structure
+      data = suspensions.map(function(d, i, a) {
+        var zipData = zipGeo[d.ZipCode];
+        Object.keys(zipData).forEach(function(prop) { d[prop] = zipData[prop]; })
+        return d;
+      })
+
+      // convert to numbers
+      data.forEach(function(d) {
+        var props = Object.keys(d);
+        props.forEach(function(prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; })
+      })
+
+      // sort data in ascending order (so highest suspension rates are drawn last and on top of the stack)
+      data.sort(function(a, b) {
+        return a.FTAFTPS100 - b.FTAFTPS100;
+      })
+
+      // create data structure for quick lookup (used by zip code geometry event handler)
+      zipData = {};
+      data.forEach(function(d) {
+        zipData[d.ZipCode] = d;
+      })
+
+      // load county geometry
+      d3.json("county4.json", function(error, county) {
+        counties = topojson.feature(county, county.objects.CaliforniaCounty);
+        console.log("loaded county info...");
+
+        // load zip code geometry
+        d3.json("ziptopo6.json", function(error, zip) {
+          zipcodes = topojson.feature(zip, zip.objects.zip);
+          console.log("loaded zip code geo json file...")
+
+          var caZipCodeMin = 90001;
+          var caZipCodeMax = 96162;
+          zipcodes.features = zipcodes.features.filter(function(item) {
+            if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
+          })
+          //console.log("number of zipcodes: ", zipcodes.features.length)
+
+          var nodataZipCodes = [];
+          zipcodes.features.forEach(function(d) {
+            d.properties.zip = +d.properties.zip;
+            var zipCode = d.properties.zip;
+
+            if (zipData[zipCode] == undefined) {
+              nodataZipCodes.push(zipCode);
+              d.properties.noData = true;
+            }
+            else {
+              d.properties.noData = false;
+              d.properties.ZipCode = zipData[d.properties.zip].ZipCode;              
+              d.properties.Places = zipData[d.properties.zip].Places;
+              d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
+              d.properties.City = zipData[d.properties.zip].City;
+              d.properties.povrate = zipData[d.properties.zip].povrate;
+              d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
+              d.properties.IncK = zipData[d.properties.zip].IncK;
+            }
+
+          })
+          //console.log("nodataZipCodes: ", nodataZipCodes)
+          console.log("Zip codes with no data: ", nodataZipCodes.length)
+
+          zipcodes.features = zipcodes.features.filter(function(d) {
+            if (d.properties.noData) return false;
+            else return true;
+          })
+          //console.log("zipcodes.features.length: ", zipcodes.features)
+          console.log("Zip codes with data: ", zipcodes.features.length)
+
+          // establish handler for the "how to use" div
+          d3.select("#howToUse").on("click", function() {
+            var state = d3.select("#instructions").style("display");
+            if (state == "none") state = "block";
+            else state = "none";
+            d3.select("#instructions").style("display", state);
+            d3.select(this).text(function() {
+              return state == "none" ? "How to use..." : "How to use";
+            })
+          })
+
+          if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
+          else mapBoxInit();
+        })
+      })
+    })
+  })
+}
+
+function mapBoxInit() {
+
+  // mapbox access token
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
+
+  // define map layers
+  var layerStack0 =  [    
+    {
+      "id": "countiesArea",
+      "interactive": true,
+      "source": "counties",
+      "type": "fill",
+      "paint": {
+        "fill-color": "white",
+        "fill-opacity": 0.1//0.01
+      }
+    },
+    {
+      "id": "countiesLine",
+      "source": "counties",
+      "type": "line",
+      "paint": {
+        "line-color": "#999",
+        "line-width": 1,
+      }
+    }
+  ]
+
+  var layerStack2 = [
+    {
+      "id": "zipcodesLine",
+      "source": "zipcodes",
+      "type": "line",
+      "paint": {
+        "line-color": "darkred",
+        "line-width": 0 //0.5,
+      }
+    }
+  ]
+
+  // define 9 map layers and bin the zip codes into layer based on driver licens suspension rate
+  var zipLayers = []
+  var levels = d3.range(9); // the ramp generated here is used to drive the fill opacity
+
+  for (var p = 0; p < levels.length; p++) {
+    var filters;
+    if (p < levels.length - 1) {
+      filters = [ 'all',
+        [ '>=', 'FTAFTPS100', levels[p] ],
+        [ '<', 'FTAFTPS100', levels[p + 1] ]
+      ]
+    } 
+    else {
+      filters = [ 'all',
+        [ '>=', 'FTAFTPS100', levels[p] ]
+      ]
+    }
+
+    // add the layer (and filters) to the zipLayers array
+    zipLayers.push({
+      id: 'cat' + p,
+      interactive: true,
+      type: 'fill',
+      source: 'zipcodes', 
+      paint: {
+        'fill-color': "darkred",
+        'fill-opacity': (p + 0) / levels.length // < 1% suspension rate == transparent
+      },
+      filter: filters
+    })
+  }
+
+  var layers = [];
+  layerStack0.forEach(function(d) { layers.push(d) })
+  zipLayers.forEach(function(d)   { layers.push(d) })
+  layerStack2.forEach(function(d) { layers.push(d) })
+
+
+  // define the first map
+  var map = new mapboxgl.Map({
+      container: 'map',
+      maxZoom: 14, //13 
+      minZoom: 4,
+      zoom: 6,
+      center: [-119, 37],
+      style: 'mapbox://styles/mapbox/bright-v8',
+      hash: false
+  });
+
+  // Add zoom and rotation controls to the map.
+  map.addControl(new mapboxgl.Navigation());
+
+  // load the counties and zipcode layers at style.load event
+  map.on("style.load", function() {
+
+    // add the two data sources before adding the layers
+    // note: extreme performance penalty if adding the data source repeatedly for each layer
+    map.addSource("counties", {
+        "type": "geojson",
+        "data": counties
+    });
+
+    map.addSource("zipcodes", {
+        "type": "geojson",
+        "data": zipcodes
+    });
+
+    // add the zip code layers
+    layers.forEach(function(d, i) {
+      map.addLayer(d)
+    })
+  })
+
+  // define the second map
+  var map2 = new mapboxgl.Map({
+      container: 'map2',
+      maxZoom: 14, //13 
+      minZoom: 4,
+      zoom: 6,
+      center: [-119, 37],
+      style: 'mapbox://styles/mapbox/bright-v8',
+      hash: false
+  });
+
+  // load the counties and zipcode layers at style.load event
+  map2.on("style.load", function() {
+
+    // add the two data sources before adding the layers
+    // note: extreme performance penalty if adding the data source repeatedly for each layer
+    map2.addSource("counties", {
+        "type": "geojson",
+        "data": counties
+    });
+
+    map2.addSource("zipcodes", {
+        "type": "geojson",
+        "data": zipcodes
+    });
+
+    // add the zip code layers
+    layers.forEach(function(d, i) {
+      map2.addLayer(d)
+    })
+  })
+
+
+  d3.select(".mapboxgl-ctrl-compass").on("click", function() {
+    d3.select("#tiltSlider").property("value", 0)
+  })
+
+  // map pitch handlers
+  d3.select("#tiltSlider").on("change", function() { tiltSlider.call(this) });
+  d3.select("#tiltSlider").on("input",  function() { tiltSlider.call(this) });
+  function tiltSlider() {
+    var elem = d3.select(this)
+    var value = +elem.property("value");
+    map.setPitch(value)
+  }
+
+  // remove zip code area border when zoomed out
+  map.on('zoom', function() {
+      var layer = map.getLayer("zipcodesLine");
+      var zoom = map.getZoom();
+      //console.log("zoom", zoom)
+      if (zoom < 9) map.setPaintProperty("zipcodesLine", "line-width", 0)
+      else map.setPaintProperty("zipcodesLine", "line-width", 0.5);
+  });
+
+  // remove zip code area border when zoomed out
+  map2.on('zoom', function() {
+      var layer = map2.getLayer("zipcodesLine");
+      var zoom = map2.getZoom();
+      //console.log("zoom", zoom)
+      if (zoom < 9) map2.setPaintProperty("zipcodesLine", "line-width", 0)
+      else map2.setPaintProperty("zipcodesLine", "line-width", 0.5);
+  });
+
+  // coordination between the two maps
+  var disable = false;
+  map.on("move", function() {
+    if (!disable) {
+      var center = map.getCenter();
+      var zoom = map.getZoom();
+      var pitch = map.getPitch();
+      var bearing = map.getBearing(); 
+
+      disable = true;
+      map2.setCenter(center);
+      map2.setZoom(zoom);
+      map2.setPitch(pitch);
+      map2.setBearing(bearing);
+      disable = false;     
+    }
+  })
+
+  map2.on("move", function() {
+    if (!disable) {
+      var center = map2.getCenter();
+      var zoom = map2.getZoom();
+      var pitch = map2.getPitch();
+      var bearing = map2.getBearing();
+
+      disable = true;
+      map.setCenter(center);
+      map.setZoom(zoom);
+      map.setPitch(pitch);
+      map.setBearing(bearing);
+      disable = false;     
+    }
+  })
+
+
+  // number formats for mouse handler below
+  var fmtPct = d3.format(",.1%");
+  var fmtInt = d3.format(",d");
+  var fmtFloat = d3.format(".1f");
+
+  // mouse handler
+  map.on('mousemove', function (e) {
+    map.featuresAt(e.point, {radius: 5}, function (error, features) {
+      if (error) throw error;
+      if (features.length == 0) return;
+
+      // separate county and zip code entries in the features array
+      var countyInfo = features.filter(function(d) { if (d.properties.ALAND != undefined) return true });
+      var zipInfo = features.filter(function(d) { if (d.properties.City != undefined) return true });
+
+      // clear properties
+      var item = {
+        County: "",
+        ZipCode: "",
+        Places: "",
+        FTAFTPS100: "",
+        City: "",
+        povrate: "",
+        Pop15Plus: "",
+        IncK: ""
+      };
+
+      // obtain county name from first item in county array
+      if (countyInfo.length > 0) {
+        item.County = countyInfo[0].properties.NAME
+      }
+
+      // obtain zip code info from first item in zip code array
+      if (zipInfo.length > 0) {
+        item.ZipCode =    zipInfo[0].properties.zip;
+        item.Places =     zipInfo[0].properties.Places;
+        item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
+        item.City =       zipInfo[0].properties.City;
+        item.povrate =    zipInfo[0].properties.povrate;
+        item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
+        item.IncK =       zipInfo[0].properties.IncK;
+      }
+
+      // set the text in the overlay panel
+      var text = [
+        "Zip Code: <b>" + item.ZipCode + "</b>",
+        "Place: <b>" + item.Places + "</b>",
+        "County: <b>" + item.County + "</b>",
+        "Suspensions: <b>" + fmtPct(item.FTAFTPS100 / 100) + "</b>",
+        "Poverty Rate: <b>" + fmtPct(item.povrate / 100) + "</b>",
+        "Population 15y+: <b>" + fmtInt(item.Pop15Plus) + "</b>",
+        "Avg Income: <b>" + fmtFloat(""+item.IncK) + "K</b>"
+      ];
+
+      // update panel
+      manageSidePanel(text);
+    });
+  });
+
+
+  // manages the side panel
+  function manageSidePanel(data) {
+    var controls = d3.select("#controls");
+    
+    // remove current elements
+    controls.selectAll("p").remove();
+    
+    // add new p elements
+    controls.selectAll("p")
+        .data(data)
+      .enter().append("p")
+        .html(function(d) { return d; })
+  }
+
+}
+
+</script>
+
