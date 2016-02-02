@@ -150,6 +150,7 @@
 
 <script>
 "use strict";
+var povDist;
 
 var counties,
     zipcodes,
@@ -241,6 +242,7 @@ function start() {
             if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
           })
           //console.log("number of zipcodes: ", zipcodes.features.length)
+          console.log("zipcodes", zipcodes);
 
           var nodataZipCodes = [];
           zipcodes.features.forEach(function(d) {
@@ -272,6 +274,27 @@ function start() {
           })
           //console.log("zipcodes.features.length: ", zipcodes.features)
           console.log("Zip codes with data: ", zipcodes.features.length)
+
+
+
+          var povRange = d3.extent(zipcodes.features, function(d, i) {
+            if (i == 0) console.log("d.properties", d.properties)
+            return d.properties.povrate;
+          })
+          console.log("povrate", povRange)
+
+          var povArrVal = zipcodes.features.map(function(d) { return d.properties.povrate })
+              .sort(function(a, b) {
+                return a - b;
+              })
+          //console.log("povArrVal", povArrVal);
+
+          povDist = d3.range(12).map(function(d) {
+            return d3.quantile(povArrVal, d / 10);
+          })
+          console.log("povDist", povDist)
+
+
 
           // establish handler for the "how to use" div
           d3.select("#howToUse").on("click", function() {
@@ -332,10 +355,12 @@ function mapBoxInit() {
     }
   ]
 
+  // map 1 layers
+
   // define 9 map layers and bin the zip codes into layer based on driver licens suspension rate
   var zipLayers = []
   var levels = d3.range(9); // the ramp generated here is used to drive the fill opacity
-
+  
   for (var p = 0; p < levels.length; p++) {
     var filters;
     if (p < levels.length - 1) {
@@ -363,11 +388,64 @@ function mapBoxInit() {
       filter: filters
     })
   }
+  
+
+  // map 2 layers
+  var zipLayers2 = [];
+
+  for (var p = 0; p < povDist.length; p++) {
+    var filters;
+    if (p < povDist.length - 1) {
+      filters = [ 'all',
+        [ '>=', 'povrate', povDist[p] ],
+        [ '<', 'povrate', povDist[p + 1] ]
+      ]
+    } else {
+      filters = [ 'all',
+        [ '>=', 'povrate', povDist[p] ]
+      ]
+    }
+
+    // add the layer (and filters) to the zipLayers array
+    zipLayers2.push({
+      id: 'cat' + p,
+      interactive: true,
+      type: 'fill',
+      source: 'zipcodes', 
+      paint: {
+        'fill-color': "darkblue",
+        'fill-opacity': (p + 0) / povDist.length // * 2 / 3 // < 1% suspension rate == transparent
+      },
+      filter: filters
+    })
+
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   var layers = [];
   layerStack0.forEach(function(d) { layers.push(d) })
   zipLayers.forEach(function(d)   { layers.push(d) })
   layerStack2.forEach(function(d) { layers.push(d) })
+
+  var layers2 = [];
+  layerStack0.forEach(function(d) { layers2.push(d) })
+  zipLayers2.forEach(function(d)   { layers2.push(d) })
+  layerStack2.forEach(function(d) { layers2.push(d) })
 
 
   // define the first map
@@ -405,6 +483,9 @@ function mapBoxInit() {
     })
   })
 
+
+
+
   // define the second map
   var map2 = new mapboxgl.Map({
       container: 'map2',
@@ -415,6 +496,9 @@ function mapBoxInit() {
       style: 'mapbox://styles/mapbox/bright-v8',
       hash: false
   });
+
+  // Add zoom and rotation controls to the map.
+  map2.addControl(new mapboxgl.Navigation());
 
   // load the counties and zipcode layers at style.load event
   map2.on("style.load", function() {
@@ -432,10 +516,12 @@ function mapBoxInit() {
     });
 
     // add the zip code layers
-    layers.forEach(function(d, i) {
+    layers2.forEach(function(d, i) {
       map2.addLayer(d)
     })
   })
+
+
 
 
   d3.select(".mapboxgl-ctrl-compass").on("click", function() {
