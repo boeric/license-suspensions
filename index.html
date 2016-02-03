@@ -289,8 +289,9 @@ function start() {
               })
           //console.log("povArrVal", povArrVal);
 
-          povDist = d3.range(12).map(function(d) {
-            return d3.quantile(povArrVal, d / 10);
+          var len = 9;
+          povDist = d3.range(len).map(function(d) {
+            return d3.quantile(povArrVal, d / len);
           })
           console.log("povDist", povDist)
 
@@ -414,27 +415,11 @@ function mapBoxInit() {
       source: 'zipcodes', 
       paint: {
         'fill-color': "darkblue",
-        'fill-opacity': (p + 0) / povDist.length // * 2 / 3 // < 1% suspension rate == transparent
+        'fill-opacity': Math.max((p / povDist.length) - 0.3, 0) 
       },
       filter: filters
     })
-
-
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   var layers = [];
