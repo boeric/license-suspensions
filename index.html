@@ -76,7 +76,7 @@
       padding-right: 20px;
       padding-bottom: 20px;
       z-index: 10000;
-      width: 300px;
+      width: 250px;
       border: 1px solid gray;
     }
     ul {
@@ -90,6 +90,7 @@
     }
     #howToUse:hover {
       color: red;
+      cursor: pointer;
     }
     #map, #map2 { 
       position: absolute; 
@@ -161,17 +162,29 @@ var counties,
 
 window.onload = function() { start(); }
 
-window.onresize = function() {
-  setWindowSize();
-}
+window.onresize = function() { setWindowSize() }
 
 function setWindowSize() {
   console.log("----", window.innerWidth, window.innerHeight)
   var width = (window.innerWidth - 6) / 2;
   d3.select("#map").style("width", width + "px")
   d3.select("#map2").style("width", width + "px")
+
+  setOverlayPos();
 }
 setWindowSize();
+
+
+function setOverlayPos() {
+  var main = d3.select("#main");
+  var height = main.node().offsetHeight;
+  console.log("height", height);
+  var windowHeight = window.innerHeight;
+  main.style("top", function(d) {
+    return Math.max(10, window.innerHeight - height - 25) + "px"
+  })    
+}
+setOverlayPos();
 
 
 
@@ -262,6 +275,10 @@ function start() {
               d.properties.povrate = zipData[d.properties.zip].povrate;
               d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
               d.properties.IncK = zipData[d.properties.zip].IncK;
+              d.properties.Black = zipData[d.properties.zip].Black;
+              d.properties.Hisp = zipData[d.properties.zip].Hisp;
+              d.properties.WhiteNH = zipData[d.properties.zip].WhiteNH;
+              d.properties.Asian = zipData[d.properties.zip].Asian;
             }
 
           })
@@ -279,34 +296,38 @@ function start() {
 
           var povRange = d3.extent(zipcodes.features, function(d, i) {
             if (i == 0) console.log("d.properties", d.properties)
-            return d.properties.povrate;
+            //return d.properties.IncK;
+            //return d.properties.povrate;
+            return d.properties.Black;
           })
           console.log("povrate", povRange)
 
-          var povArrVal = zipcodes.features.map(function(d) { return d.properties.povrate })
+          //var povArrVal = zipcodes.features.map(function(d) { return d.properties.IncK })
+          //var povArrVal = zipcodes.features.map(function(d) { return d.properties.povrate })
+          var povArrVal = zipcodes.features.map(function(d) { return d.properties.Black })
               .sort(function(a, b) {
                 return a - b;
               })
-          //console.log("povArrVal", povArrVal);
+          console.log("povArrVal", povArrVal);
 
-          var len = 9;
+          var len = 10;
           povDist = d3.range(len).map(function(d) {
             return d3.quantile(povArrVal, d / len);
           })
           console.log("povDist", povDist)
 
+          var values = povArrVal;
+          //var values = d3.range(100)
+          var data = d3.layout.histogram()
+              .bins([0, 5, 10, 15, 20, 100])
+              (values);
+          console.log("data", data)
+          var dataDist = data.map(function(d) { return d.length })
+          console.log("dataDist", dataDist)
 
 
-          // establish handler for the "how to use" div
-          d3.select("#howToUse").on("click", function() {
-            var state = d3.select("#instructions").style("display");
-            if (state == "none") state = "block";
-            else state = "none";
-            d3.select("#instructions").style("display", state);
-            d3.select(this).text(function() {
-              return state == "none" ? "How to use..." : "How to use";
-            })
-          })
+
+
 
           if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
           else mapBoxInit();
@@ -398,14 +419,21 @@ function mapBoxInit() {
     var filters;
     if (p < povDist.length - 1) {
       filters = [ 'all',
-        [ '>=', 'povrate', povDist[p] ],
-        [ '<', 'povrate', povDist[p + 1] ]
+        //[ '>=', 'IncK', povDist[p] ],
+        //[ '>=', 'povrate', povDist[p] ],
+        [ '>=', 'Black', povDist[p] ],
+        //[ '<', 'IncK', povDist[p + 1] ]
+        //[ '<', 'povrate', povDist[p + 1] ]
+        [ '<', 'Black', povDist[p + 1] ]
       ]
     } else {
       filters = [ 'all',
-        [ '>=', 'povrate', povDist[p] ]
+        //[ '>=', 'IncK', povDist[p] ]
+        //[ '>=', 'povrate', povDist[p] ]
+        [ '>=', 'Black', povDist[p] ]
       ]
     }
+
 
     // add the layer (and filters) to the zipLayers array
     zipLayers2.push({
@@ -415,10 +443,25 @@ function mapBoxInit() {
       source: 'zipcodes', 
       paint: {
         'fill-color': "darkblue",
-        'fill-opacity': Math.max((p / povDist.length) - 0.3, 0) 
+        //'fill-opacity': Math.max((p / povDist.length) - 0.3, 0) 
+        
+        //'fill-opacity': gamma((povDist.length - p) / povDist.length, 1, .5) * 0.8
+        'fill-opacity': gamma(p / povDist.length, 1, .35) * 0.8
+        
+        //'fill-opacity': (povDist.length - p) / povDist.length * 0.8
+        //'fill-opacity': p / povDist.length * 0.8
       },
       filter: filters
     })
+  }
+
+  // pov rate: gamma 0.35, opacity mult 0.8, bins 10
+  // inc: inverted
+
+  function gamma(val, max, gamma) {
+    var ret = Math.pow(val / max, (1 / gamma)) * max;
+    console.log("ret", ret);
+    return ret
   }
 
 
@@ -443,6 +486,7 @@ function mapBoxInit() {
       style: 'mapbox://styles/mapbox/bright-v8',
       hash: false
   });
+
 
   // Add zoom and rotation controls to the map.
   map.addControl(new mapboxgl.Navigation());
@@ -581,7 +625,10 @@ function mapBoxInit() {
   var fmtFloat = d3.format(".1f");
 
   // mouse handler
-  map.on('mousemove', function (e) {
+  map.on('mousemove', function(e) { mouseMove(e) }) 
+  map2.on('mousemove', function(e) { mouseMove(e) }) 
+
+  function mouseMove (e) {
     map.featuresAt(e.point, {radius: 5}, function (error, features) {
       if (error) throw error;
       if (features.length == 0) return;
@@ -632,7 +679,7 @@ function mapBoxInit() {
       // update panel
       manageSidePanel(text);
     });
-  });
+  };
 
 
   // manages the side panel
@@ -648,6 +695,20 @@ function mapBoxInit() {
       .enter().append("p")
         .html(function(d) { return d; })
   }
+
+
+  // establish handler for the "how to use" div
+  d3.select("#howToUse").on("click", function() {
+    var state = d3.select("#instructions").style("display");
+    if (state == "none") state = "block";
+    else state = "none";
+    d3.select("#instructions").style("display", state);
+    d3.select(this).text(function() {
+      return state == "none" ? "How to use..." : "How to use";
+    })
+
+    setOverlayPos();
+  })
 
 }
 
