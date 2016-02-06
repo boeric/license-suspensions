@@ -363,7 +363,7 @@ function mapBoxInit() {
         "line-width": 1,
       }
     }
-  ]
+  ];
 
   var layerStack2 = [
     {
@@ -375,8 +375,247 @@ function mapBoxInit() {
         "line-width": 0 //0.5,
       }
     }
-  ]
+  ];
 
+
+  function MapGl() {
+    var dataSource;
+    var dataProperty;
+    var layerCount;
+    var color;
+    var gamma;
+    var opacity;
+    var controls;
+    var layersBeforeData;
+    var layersAfterData;
+
+    var map;
+
+    var main = function(container) {
+      if (!container) {
+        console.error("No container provided")
+        return null
+      }
+
+      // define map data layers and bin the zip codes into layer based on driver licens suspension rate
+      var dataLayers = []
+      var levels = d3.range(layerCount); // the ramp generated here is used to drive the fill opacity
+      
+      for (var p = 0; p < levels.length; p++) {
+        var filters;
+        if (p < levels.length - 1) {
+          filters = [ 'all',
+            [ '>=', dataProperty, levels[p] ],
+            [ '<', dataProperty, levels[p + 1] ]
+          ]
+        } 
+        else {
+          filters = [ 'all',
+            [ '>=', dataProperty, levels[p] ]
+          ]
+        }
+
+        // add this layer (and filters) to the data layers array
+        dataLayers.push({
+          id: 'cat' + p,
+          interactive: true,
+          type: 'fill',
+          source: dataSource, 
+          paint: {
+            'fill-color': color,
+            'fill-opacity': p / levels.length
+          },
+          filter: filters
+        })
+      }
+
+      var mapLayers = [];
+      layersBeforeData.forEach(function(d) { mapLayers.push(d) })
+      dataLayers.forEach(function(d)  { mapLayers.push(d) })
+      layersAfterData.forEach(function(d) { mapLayers.push(d) })
+
+      // define the map
+      var map = new mapboxgl.Map({
+          container: container,
+          maxZoom: 14, //13 
+          minZoom: 4,
+          zoom: 6,
+          center: [-119, 37],
+          style: 'mapbox://styles/mapbox/bright-v8',
+          hash: false
+      });
+
+      // Add zoom and rotation controls to the map.
+      map.addControl(new mapboxgl.Navigation());
+      
+      // load the counties and zipcode layers at style.load event
+      map.on("style.load", function() {
+
+        // add the two data sources before adding the layers
+        // note: extreme performance penalty if adding the data source repeatedly for each layer
+        map.addSource("counties", {
+            "type": "geojson",
+            "data": counties
+        });
+
+        map.addSource("zipcodes", {
+            "type": "geojson",
+            "data": zipcodes
+        });
+
+        // add the zip code layers
+        layers.forEach(function(d, i) {
+          map.addLayer(d)
+        })
+      })
+
+
+
+      return map;
+    }
+
+    main.dataSource = function(_) {
+      if (arguments.length == 0) return dataSource;
+      dataSource = _;
+      return main;      
+    }
+    main.layersBeforeData = function(_) {
+      if (arguments.length == 0) return layersBeforeData;
+      layersBeforeData = _;
+      return main;      
+    }
+    main.layersAfterData = function(_) {
+      if (arguments.length == 0) return layersAfterData;
+      layersAfterData = _;
+      return main;      
+    }
+    main.dataProperty = function(_) {
+      if (arguments.length == 0) return dataProperty;
+      dataProperty = _;
+      return main;
+    }
+    main.layerCount = function(_) {
+      if (arguments.length == 0) return layerCount;
+      layerCount = _;
+      return main;
+    }
+    main.color = function(_) {
+      if (arguments.length == 0) return color;
+      color = _;
+      return main;      
+    }
+    main.gamma = function(_) {
+      if (arguments.length == 0) return gamma;
+      gamma = _;
+      return main;      
+    }
+    main.opacity = function(_) {
+      if (arguments.length == 0) return opacity;
+      opacity = _;
+      return main;      
+    }
+    main.controls = function(_) {
+      if (arguments.length == 0) return controls;
+      controls = _;
+      return main;        
+    }
+
+    return main;
+  }
+
+
+
+
+  function initMap() {
+
+    // define 9 map layers and bin the zip codes into layer based on driver licens suspension rate
+    var zipLayers = []
+    var levels = d3.range(9); // the ramp generated here is used to drive the fill opacity
+    
+    for (var p = 0; p < levels.length; p++) {
+      var filters;
+      if (p < levels.length - 1) {
+        filters = [ 'all',
+          [ '>=', 'FTAFTPS100', levels[p] ],
+          [ '<', 'FTAFTPS100', levels[p + 1] ]
+        ]
+      } 
+      else {
+        filters = [ 'all',
+          [ '>=', 'FTAFTPS100', levels[p] ]
+        ]
+      }
+
+      // add the layer (and filters) to the zipLayers array
+      zipLayers.push({
+        id: 'cat' + p,
+        interactive: true,
+        type: 'fill',
+        source: 'zipcodes', 
+        paint: {
+          'fill-color': "darkred",
+          'fill-opacity': (p + 0) / levels.length // < 1% suspension rate == transparent
+        },
+        filter: filters
+      })
+    }
+
+    var layers = [];
+    layerStack0.forEach(function(d) { layers.push(d) })
+    zipLayers.forEach(function(d)   { layers.push(d) })
+    layerStack2.forEach(function(d) { layers.push(d) })
+
+    // define the map
+    var map = new mapboxgl.Map({
+        container: 'map',
+        maxZoom: 14, //13 
+        minZoom: 4,
+        zoom: 6,
+        center: [-119, 37],
+        style: 'mapbox://styles/mapbox/bright-v8',
+        hash: false
+    });
+
+    // Add zoom and rotation controls to the map.
+    map.addControl(new mapboxgl.Navigation());
+
+    // load the counties and zipcode layers at style.load event
+    map.on("style.load", function() {
+
+      // add the two data sources before adding the layers
+      // note: extreme performance penalty if adding the data source repeatedly for each layer
+      map.addSource("counties", {
+          "type": "geojson",
+          "data": counties
+      });
+
+      map.addSource("zipcodes", {
+          "type": "geojson",
+          "data": zipcodes
+      });
+
+      // add the zip code layers
+      layers.forEach(function(d, i) {
+        map.addLayer(d)
+      })
+    })
+
+    // remove zip code area border when zoomed out
+    map.on('zoom', function() {
+        var layer = map.getLayer("zipcodesLine");
+        var zoom = map.getZoom();
+        //console.log("zoom", zoom)
+        if (zoom < 9) map.setPaintProperty("zipcodesLine", "line-width", 0)
+        else map.setPaintProperty("zipcodesLine", "line-width", 0.5);
+    });
+    return map;
+  }
+
+  var map = initMap("left", "FTAFTPS100");
+
+
+
+/*
   // map 1 layers
 
   // define 9 map layers and bin the zip codes into layer based on driver licens suspension rate
@@ -410,7 +649,8 @@ function mapBoxInit() {
       filter: filters
     })
   }
-  
+*/
+
 
   // map 2 layers
   var zipLayers2 = [];
@@ -464,18 +704,19 @@ function mapBoxInit() {
     return ret
   }
 
-
+/*
   var layers = [];
   layerStack0.forEach(function(d) { layers.push(d) })
   zipLayers.forEach(function(d)   { layers.push(d) })
   layerStack2.forEach(function(d) { layers.push(d) })
+*/
 
   var layers2 = [];
   layerStack0.forEach(function(d) { layers2.push(d) })
   zipLayers2.forEach(function(d)   { layers2.push(d) })
   layerStack2.forEach(function(d) { layers2.push(d) })
 
-
+/*
   // define the first map
   var map = new mapboxgl.Map({
       container: 'map',
@@ -486,8 +727,9 @@ function mapBoxInit() {
       style: 'mapbox://styles/mapbox/bright-v8',
       hash: false
   });
+*/
 
-
+/*
   // Add zoom and rotation controls to the map.
   map.addControl(new mapboxgl.Navigation());
 
@@ -511,7 +753,7 @@ function mapBoxInit() {
       map.addLayer(d)
     })
   })
-
+*/
 
 
 
@@ -566,6 +808,7 @@ function mapBoxInit() {
     map.setPitch(value)
   }
 
+/*
   // remove zip code area border when zoomed out
   map.on('zoom', function() {
       var layer = map.getLayer("zipcodesLine");
@@ -574,6 +817,7 @@ function mapBoxInit() {
       if (zoom < 9) map.setPaintProperty("zipcodesLine", "line-width", 0)
       else map.setPaintProperty("zipcodesLine", "line-width", 0.5);
   });
+*/
 
   // remove zip code area border when zoomed out
   map2.on('zoom', function() {
@@ -583,6 +827,7 @@ function mapBoxInit() {
       if (zoom < 9) map2.setPaintProperty("zipcodesLine", "line-width", 0)
       else map2.setPaintProperty("zipcodesLine", "line-width", 0.5);
   });
+
 
   // coordination between the two maps
   var disable = false;
@@ -601,6 +846,7 @@ function mapBoxInit() {
       disable = false;     
     }
   })
+
 
   map2.on("move", function() {
     if (!disable) {
