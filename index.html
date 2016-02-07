@@ -68,7 +68,7 @@
     #main {
       position: absolute;
       top: 10px;
-      left: 10px;
+      left: 20px;
       opacity: 0.85;
       background-color: white;
       border-radius: 5px;
@@ -110,20 +110,41 @@
     .header {
       display: block;
       color: Black;
-      /*background-color: white;*/
       text-align: center;
       margin-top: 7px;
       text-shadow: 0px 0px 10px #fff;
     }
     .headerBox {
+      position: absolute;
       top: 10px;
       left: 0;
       right: 0;
       margin: 0 auto;
-      width: 200px;
+      width: 250px;
       height: 35px;
-      background-color: rgba(255, 255, 255, 0.0)
+      background-color: rgba(255, 255, 255, 0.85);
+      border-radius: 5px;
+      border: 1px solid gray;
     }
+    .dataSelect {
+      position: absolute;
+      bottom: 25px;
+      left: 20px;
+      /*margin: 0 auto;*/
+      width: 160px;
+      height: 50px;
+      background-color: rgba(255, 255, 255, 0.85);
+      border: 1px solid gray;
+      border-radius: 5px;
+      padding: 10px 15px;
+    }
+    .dataSelect label {
+      font-weight: bold;
+    }
+    .dataSelect select {
+      margin-top: 8px;
+    }
+
   </style>
 </head>
 <body>
@@ -182,7 +203,6 @@ window.onload = function() { start(); }
 window.onresize = function() { setWindowSize() }
 
 function setWindowSize() {
-  console.log("----", window.innerWidth, window.innerHeight)
   var width = (window.innerWidth - 6) / 2;
   d3.select("#map").style("width", width + "px")
   d3.select("#map2").style("width", width + "px")
@@ -195,8 +215,8 @@ setWindowSize();
 function setOverlayPos() {
   var main = d3.select("#main");
   var height = main.node().offsetHeight;
-  console.log("height", height);
   var windowHeight = window.innerHeight;
+
   main.style("top", function(d) {
     return Math.max(10, window.innerHeight - height - 25) + "px"
   })    
@@ -379,7 +399,11 @@ function mapBoxInit() {
         City: "",
         povrate: "",
         Pop15Plus: "",
-        IncK: ""
+        IncK: "",
+        Black: "",
+        Hisp: "",
+        Asian: "",
+        White: "",
       };
 
       // obtain county name from first item in county array
@@ -396,6 +420,10 @@ function mapBoxInit() {
         item.povrate =    zipInfo[0].properties.povrate;
         item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
         item.IncK =       zipInfo[0].properties.IncK;
+        item.Black =      zipInfo[0].properties.Black;
+        item.Hisp =       zipInfo[0].properties.Hisp;
+        item.Asian =      zipInfo[0].properties.Asian;
+        item.White =      zipInfo[0].properties.WhiteNH;
       }
 
       // set the text in the overlay panel
@@ -406,7 +434,11 @@ function mapBoxInit() {
         "Suspensions: <b>" + fmtPct(item.FTAFTPS100 / 100) + "</b>",
         "Poverty Rate: <b>" + fmtPct(item.povrate / 100) + "</b>",
         "Population 15y+: <b>" + fmtInt(item.Pop15Plus) + "</b>",
-        "Avg Income: <b>" + fmtFloat(""+item.IncK) + "K</b>"
+        "Avg Income: <b>" + fmtFloat("" + item.IncK) + "K</b>",
+        "Black: <b>" + fmtPct("" + item.Black / 100) + "</b>",
+        "Hispanic: <b>" + fmtPct("" + item.Hisp / 100) + "</b>",
+        "Asian: <b>" + fmtPct("" + item.Asian / 100) + "</b>",
+        "White: <b>" + fmtPct("" + item.White / 100) + "</b>"
       ];
 
       // update panel
@@ -453,7 +485,7 @@ function mapBoxInit() {
         gamma: 1,
         opacity: 0.8,
         invert: false,
-        color: "lightslategray"
+        color: "purple"
       },
       {
         prop: "Hisp",
@@ -533,7 +565,7 @@ function mapBoxInit() {
   }
 
 
-  function initMap(container, prop, color, gamma, opacity, levels, filters, title) {
+  function initMap(container, prop, color, gamma, opacity, levels, filters, title, dimensions) {
     
     console.log("container", container)
     console.log("prop", prop)
@@ -543,6 +575,7 @@ function mapBoxInit() {
     console.log("levels", levels)
     console.log("filters", filters)
     console.log("title", title)
+    console.log("dimensions", dimensions)
     
     var dataLayers = [];
     
@@ -621,13 +654,38 @@ function mapBoxInit() {
       .append("div")
         .attr("id", container + "Title")
         .attr("class", "headerBox")
-        .style("position", "absolute")
-
 
     titleDiv.append("h2")
         .attr("class", "header")
         .text(title)
 
+
+    if (dimensions) {
+      var dataSelectDiv = d3.select("#" + container)
+        .append("div")
+          .attr("id", container + "DataSelect")
+          .attr("class", "dataSelect")
+
+      dataSelectDiv.append("label")
+          .text("Select data series")
+
+      dataSelectDiv.append("select")
+          .on("change", function(bla) {
+            var elem = d3.select(this)
+            var value = elem.property("value")
+            dimensions.some(function(d, i) {
+              if (d.prop == value) {
+                setDimension(i + 1);
+                return true;
+              }
+            })
+          })
+          .selectAll("option")
+          .data(dimensions)
+        .enter().append("option")
+          .attr("value", function(d) { return d.prop })
+          .text(function(d) { return d.title })
+    }
 
     return map;
   }
@@ -639,8 +697,9 @@ function mapBoxInit() {
   //window.firstMap = map;
   
   // init second map
-  var d = dimensions[3];
-  var map2 = initMap("map2", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title) 
+  var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(1)
+  var d = dimensions[1];
+  var map2 = initMap("map2", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList) 
   //window.secondMap = map;
 
 
@@ -658,6 +717,8 @@ function mapBoxInit() {
       var gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins; 
       map2.setPaintProperty(layerId, "fill-opacity", calcGamma(gammaArg, d.gamma) * d.opacity);
     })
+
+    d3.select("#map2Title > .header").text(d.title)
   }
 
   window.setDimension = setDimension;
@@ -700,15 +761,6 @@ function mapBoxInit() {
   })
 
 
-
-
-
-
-
-
-
-
-
   // map pitch handlers
   d3.select("#tiltSlider").on("change", function() { tiltSlider.call(this) });
   d3.select("#tiltSlider").on("input",  function() { tiltSlider.call(this) });
@@ -717,8 +769,6 @@ function mapBoxInit() {
     var value = +elem.property("value");
     map.setPitch(value)
   }
-
-
 
 
   // manages the side panel
