@@ -471,7 +471,7 @@ function mapBoxInit() {
       },
       {
         prop: "IncK",
-        title: "Average Income",
+        title: "Average Income (inverted)",
         inverse: true,
         gamma: 0.3,
         opacity: 0.8,
@@ -480,7 +480,7 @@ function mapBoxInit() {
       },
       {
         prop: "Black",
-        title: "Black %",
+        title: "African American %",
         inverse: false,
         gamma: 1,
         opacity: 0.8,
@@ -704,9 +704,12 @@ function mapBoxInit() {
 
 
 
-  var setDimension = function(dim) {
+  var setDimension = function(dim, g, o, c) {
     var d = dimensions[dim];
-    console.log("dim", d.prop)
+    if (g != undefined) d.gamma = +g;
+    if (o != undefined) d.opacity = +o
+    if (c != undefined) d.color = c;
+    console.log("dataSeries:", d.prop, "gamma:", d.gamma, "opacity:", d.opacity, "color:", d.color)
     //console.log("--", map2.getLayer("dataLayer3"))
     //console.log("d", d);
 
@@ -720,11 +723,7 @@ function mapBoxInit() {
 
     d3.select("#map2Title > .header").text(d.title)
   }
-
   window.setDimension = setDimension;
-
-
-
 
 
   var disable = false;
@@ -743,6 +742,7 @@ function mapBoxInit() {
       disable = false;     
     }
   })
+
 
   map2.on("move", function() {
     if (!disable) {
@@ -783,6 +783,8 @@ function mapBoxInit() {
         .data(data)
       .enter().append("p")
         .html(function(d) { return d; })
+
+    setOverlayPos();
   }
 
 
