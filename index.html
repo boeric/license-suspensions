@@ -15,8 +15,8 @@
 
   <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.js'></script>
   <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.css' rel='stylesheet' />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
-  <!--<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>-->
+  <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>-->
+  <script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>
 
   <style>
@@ -131,8 +131,8 @@
       bottom: 25px;
       left: 20px;
       /*margin: 0 auto;*/
-      width: 160px;
-      height: 50px;
+      width: 250px;
+      height: 200px;
       background-color: rgba(255, 255, 255, 0.85);
       border: 1px solid gray;
       border-radius: 5px;
@@ -144,7 +144,18 @@
     .dataSelect select {
       margin-top: 8px;
     }
-
+    .legendBox {
+      position: absolute;
+      bottom: 200px;
+      right: 20px;
+      /*margin: 0 auto;*/
+      width: 80px;
+      height: 400px;
+      background-color: rgba(255, 255, 255, 0.85);
+      border: 1px solid gray;
+      border-radius: 5px;
+      padding: 10px 15px;      
+    }
   </style>
 </head>
 <body>
@@ -196,7 +207,10 @@ var counties,
     data,
     zipGeo,
     countyZips,
-    zipData;
+    zipData,
+    map;
+
+var fmt = d3.format(".0f")
 
 window.onload = function() { start(); }
 
@@ -337,6 +351,7 @@ function start() {
   })
 }
 
+
 function mapBoxInit() {
 
   // mapbox access token
@@ -377,74 +392,6 @@ function mapBoxInit() {
     }
   ];
 
-  function mouseMove (e) {
-    var fmtPct = d3.format(",.1%");
-    var fmtInt = d3.format(",d");
-    var fmtFloat = d3.format(".1f");
-    
-    map.featuresAt(e.point, {radius: 5}, function (error, features) {
-      if (error) throw error;
-      if (features.length == 0) return;
-
-      // separate county and zip code entries in the features array
-      var countyInfo = features.filter(function(d) { if (d.properties.ALAND != undefined) return true });
-      var zipInfo = features.filter(function(d) { if (d.properties.City != undefined) return true });
-
-      // clear properties
-      var item = {
-        County: "",
-        ZipCode: "",
-        Places: "",
-        FTAFTPS100: "",
-        City: "",
-        povrate: "",
-        Pop15Plus: "",
-        IncK: "",
-        Black: "",
-        Hisp: "",
-        Asian: "",
-        White: "",
-      };
-
-      // obtain county name from first item in county array
-      if (countyInfo.length > 0) {
-        item.County = countyInfo[0].properties.NAME
-      }
-
-      // obtain zip code info from first item in zip code array
-      if (zipInfo.length > 0) {
-        item.ZipCode =    zipInfo[0].properties.zip;
-        item.Places =     zipInfo[0].properties.Places;
-        item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
-        item.City =       zipInfo[0].properties.City;
-        item.povrate =    zipInfo[0].properties.povrate;
-        item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
-        item.IncK =       zipInfo[0].properties.IncK;
-        item.Black =      zipInfo[0].properties.Black;
-        item.Hisp =       zipInfo[0].properties.Hisp;
-        item.Asian =      zipInfo[0].properties.Asian;
-        item.White =      zipInfo[0].properties.WhiteNH;
-      }
-
-      // set the text in the overlay panel
-      var text = [
-        "Zip Code: <b>" + item.ZipCode + "</b>",
-        "Place: <b>" + item.Places + "</b>",
-        "County: <b>" + item.County + "</b>",
-        "Suspensions: <b>" + fmtPct(item.FTAFTPS100 / 100) + "</b>",
-        "Poverty Rate: <b>" + fmtPct(item.povrate / 100) + "</b>",
-        "Population 15y+: <b>" + fmtInt(item.Pop15Plus) + "</b>",
-        "Avg Income: <b>" + fmtFloat("" + item.IncK) + "K</b>",
-        "Black: <b>" + fmtPct("" + item.Black / 100) + "</b>",
-        "Hispanic: <b>" + fmtPct("" + item.Hisp / 100) + "</b>",
-        "Asian: <b>" + fmtPct("" + item.Asian / 100) + "</b>",
-        "White: <b>" + fmtPct("" + item.White / 100) + "</b>"
-      ];
-
-      // update panel
-      manageSidePanel(text);
-    });
-  };
 
 
   // dataset dimensions
@@ -565,7 +512,7 @@ function mapBoxInit() {
   }
 
 
-  function initMap(container, prop, color, gamma, opacity, levels, filters, title, dimensions) {
+  function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
     
     console.log("container", container)
     console.log("prop", prop)
@@ -575,7 +522,7 @@ function mapBoxInit() {
     console.log("levels", levels)
     console.log("filters", filters)
     console.log("title", title)
-    console.log("dimensions", dimensions)
+    console.log("dims", dims)
     
     var dataLayers = [];
     
@@ -601,6 +548,7 @@ function mapBoxInit() {
     layerStack2.forEach(function(d) { layers.push(d) })
 
     // init the map
+
     var map = new mapboxgl.Map({
         container: container,
         maxZoom: 14, //13 
@@ -610,6 +558,7 @@ function mapBoxInit() {
         style: 'mapbox://styles/mapbox/bright-v8',
         hash: false
     });
+
 
     // add controls to the map, and event handler
     map.addControl(new mapboxgl.Navigation());
@@ -647,9 +596,15 @@ function mapBoxInit() {
         else map.setPaintProperty("zipcodesLine", "line-width", 0.5);
     });
 
+
     // update the overlay
     map.on('mousemove', function(e) { mouseMove(e) }) 
 
+
+
+
+
+    // create title elem above the map
     var titleDiv = d3.select("#" + container)
       .append("div")
         .attr("id", container + "Title")
@@ -660,7 +615,8 @@ function mapBoxInit() {
         .text(title)
 
 
-    if (dimensions) {
+    // if dimensions array is passed in, then select elem to allow choice of data series
+    if (dims) {
       var dataSelectDiv = d3.select("#" + container)
         .append("div")
           .attr("id", container + "DataSelect")
@@ -673,7 +629,7 @@ function mapBoxInit() {
           .on("change", function(bla) {
             var elem = d3.select(this)
             var value = elem.property("value")
-            dimensions.some(function(d, i) {
+            dims.some(function(d, i) {
               if (d.prop == value) {
                 setDimension(i + 1);
                 return true;
@@ -681,19 +637,123 @@ function mapBoxInit() {
             })
           })
           .selectAll("option")
-          .data(dimensions)
+          .data(dims)
         .enter().append("option")
           .attr("value", function(d) { return d.prop })
           .text(function(d) { return d.title })
+
+      var span = dataSelectDiv.append("span")
+          .style("display", "block")
+          .style("margin-top", "20px")
+
+      span.append("label")
+          .style("display", "block")
+          .text("Contrast")
+
+      span.append("input")
+          .attr("id", "contrastRange")
+          .attr("min", 0)
+          .attr("max", 100)
+          .attr("step", 1)
+          .attr("value", 100)
+          .attr("type", "range")
+          .style("width", "200px")
+          .on("change", function() { rangeContrastEvent.call(this) })
+          .on("input", function() { rangeContrastEvent.call(this) })
+
+      span.append("p")
+          .attr("id", "contrastText")
+          .style("margin-top", "0px")
+          .text("value");
+
+      span = dataSelectDiv.append("span")
+          .style("display", "block")
+          .style("margin-top", "20px")
+
+      span.append("label")
+          .style("display", "block")
+          .text("Opacity");
+
+      span.append("input")
+          .attr("id", "opacityRange")
+          .attr("min", 0)
+          .attr("max", 100)
+          .attr("step", 1)
+          .attr("value", 100)
+          .attr("type", "range")
+          .style("width", "200px")
+          .on("change", function() { rangeOpacityEvent.call(this) })
+          .on("input", function() { rangeOpacityEvent.call(this) })
+
+      span.append("p")
+          .attr("id", "opacityText")
+          .style("margin-top", "0px")
+          .text("value");
+
     }
 
+
+
+    function rangeContrastEvent() {
+      var elem = d3.select(this)
+      var value = elem.property("value")
+      //console.log("value", value)
+      d3.select("#contrastText").text(fmt(value));
+
+      var dim = getDimension();
+      setDimension(dim, value / 100)
+    }
+
+    function rangeOpacityEvent() {
+      var elem = d3.select(this)
+      var value = elem.property("value")
+      //console.log("value", value)
+      d3.select("#opacityText").text(value);
+
+      //console.log("--------", JSON.stringify(dimensions, null, 1))
+      var dim = getDimension();
+      //console.log("dim", dim)
+      var d = dimensions[dim];
+      //console.log("d", d)
+      d.opacity = value / 100;
+
+
+      setDimension(dim, d.gamma, d.opacity, d.color)
+    }
+
+/*
+    // create legend panel
+    var legendDiv = d3.select("#" + container)
+      .append("div")
+        .attr("id", container + "Legend")
+        .attr("class", "legendBox");
+
+    var svg = legendDiv.append("svg")
+        .attr("width", 100)
+        .attr("height", 400)
+        .style("border", "1px solid lightgray")
+      .append("g")
+        .style("transform", "translate(10 10")
+
+    svg.append("rect")
+        .attr("x", 10)
+        .attr("y", 10)
+        .attr("width", 50)
+        .attr("height", 100)
+        .style("fill", "blue")
+*/
+
+
+
+
+    // return the map to caller
     return map;
   }
 
 
   // init first map
   var d = dimensions[0];
-  var map = initMap("map", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
+  map = initMap("map", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
   //window.firstMap = map;
   
   // init second map
@@ -701,17 +761,24 @@ function mapBoxInit() {
   var d = dimensions[1];
   var map2 = initMap("map2", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList) 
   //window.secondMap = map;
+  d3.select("#contrastRange").property("value", d.gamma * 100);
+  d3.select("#contrastText").text(fmt(d.gamma * 100));
+  d3.select("#opacityRange").property("value", d.opacity * 100);
+  d3.select("#opacityText").text(fmt(d.opacity * 100));
 
 
-
+  var currDim = 1;
   var setDimension = function(dim, g, o, c) {
+    //console.log("dim", dim)
     var d = dimensions[dim];
+    //console.log("d----------", d)
     if (g != undefined) d.gamma = +g;
     if (o != undefined) d.opacity = +o
     if (c != undefined) d.color = c;
-    console.log("dataSeries:", d.prop, "gamma:", d.gamma, "opacity:", d.opacity, "color:", d.color)
+    //console.log("dataSeries:", d.prop, "gamma:", d.gamma, "opacity:", d.opacity, "color:", d.color)
     //console.log("--", map2.getLayer("dataLayer3"))
     //console.log("d", d);
+    currDim = dim;
 
     d3.range(bins).forEach(function(p) {
       var layerId = "dataLayer" + p;
@@ -722,10 +789,27 @@ function mapBoxInit() {
     })
 
     d3.select("#map2Title > .header").text(d.title)
+
+    d3.select("#contrastRange").property("value", d.gamma * 100);
+    d3.select("#contrastText").text(fmt(d.gamma * 100));
+    d3.select("#opacityRange").property("value", d.opacity * 100);
+    d3.select("#opacityText").text(fmt(d.opacity * 100));
+
   }
+  //setDimension(1);
   window.setDimension = setDimension;
 
+  function getDimension() {
+    return currDim;
+  }
 
+
+/*
+var map = {};
+map.on = function() {}
+var map2 = {};
+map2.on = function() {}
+*/
   var disable = false;
   map.on("move", function() {
     if (!disable) {
@@ -800,6 +884,78 @@ function mapBoxInit() {
 
     setOverlayPos();
   })
+
+
+  function mouseMove (e) {
+    var fmtPct = d3.format(",.1%");
+    var fmtInt = d3.format(",d");
+    var fmtFloat = d3.format(".1f");
+    
+    map.featuresAt(e.point, {radius: 5}, function (error, features) {
+      if (error) throw error;
+      if (features.length == 0) return;
+
+      // separate county and zip code entries in the features array
+      var countyInfo = features.filter(function(d) { if (d.properties.ALAND != undefined) return true });
+      var zipInfo = features.filter(function(d) { if (d.properties.City != undefined) return true });
+
+      // clear properties
+      var item = {
+        County: "",
+        ZipCode: "",
+        Places: "",
+        FTAFTPS100: "",
+        City: "",
+        povrate: "",
+        Pop15Plus: "",
+        IncK: "",
+        Black: "",
+        Hisp: "",
+        Asian: "",
+        White: "",
+      };
+
+      // obtain county name from first item in county array
+      if (countyInfo.length > 0) {
+        item.County = countyInfo[0].properties.NAME
+      }
+
+      // obtain zip code info from first item in zip code array
+      if (zipInfo.length > 0) {
+        item.ZipCode =    zipInfo[0].properties.zip;
+        item.Places =     zipInfo[0].properties.Places;
+        item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
+        item.City =       zipInfo[0].properties.City;
+        item.povrate =    zipInfo[0].properties.povrate;
+        item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
+        item.IncK =       zipInfo[0].properties.IncK;
+        item.Black =      zipInfo[0].properties.Black;
+        item.Hisp =       zipInfo[0].properties.Hisp;
+        item.Asian =      zipInfo[0].properties.Asian;
+        item.White =      zipInfo[0].properties.WhiteNH;
+      }
+
+      // set the text in the overlay panel
+      var text = [
+        "Zip Code: <b>" + item.ZipCode + "</b>",
+        "Place: <b>" + item.Places + "</b>",
+        "County: <b>" + item.County + "</b>",
+        "Suspensions: <b>" + fmtPct(item.FTAFTPS100 / 100) + "</b>",
+        "Poverty Rate: <b>" + fmtPct(item.povrate / 100) + "</b>",
+        "Population 15y+: <b>" + fmtInt(item.Pop15Plus) + "</b>",
+        "Avg Income: <b>" + fmtFloat("" + item.IncK) + "K</b>",
+        "Black: <b>" + fmtPct("" + item.Black / 100) + "</b>",
+        "Hispanic: <b>" + fmtPct("" + item.Hisp / 100) + "</b>",
+        "Asian: <b>" + fmtPct("" + item.Asian / 100) + "</b>",
+        "White: <b>" + fmtPct("" + item.White / 100) + "</b>"
+      ];
+
+      // update panel
+      manageSidePanel(text);
+    });
+  };
+
+
 
 }
 
