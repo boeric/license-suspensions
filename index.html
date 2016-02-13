@@ -15,8 +15,8 @@
 
   <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.js'></script>
   <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.css' rel='stylesheet' />
-  <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>-->
-  <script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+  <!--<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>-->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>
 
   <style>
@@ -631,7 +631,8 @@ function mapBoxInit() {
             var value = elem.property("value")
             dims.some(function(d, i) {
               if (d.prop == value) {
-                setDimension(i + 1);
+                //setDimension(i + 1);
+                setDimension(i);
                 return true;
               }
             })
@@ -757,8 +758,8 @@ function mapBoxInit() {
   //window.firstMap = map;
   
   // init second map
-  var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(1)
-  var d = dimensions[1];
+  var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(0)
+  var d = dimensions[0];
   var map2 = initMap("map2", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList) 
   //window.secondMap = map;
   d3.select("#contrastRange").property("value", d.gamma * 100);
@@ -767,7 +768,7 @@ function mapBoxInit() {
   d3.select("#opacityText").text(fmt(d.opacity * 100));
 
 
-  var currDim = 1;
+  var currDim = 0;
   var setDimension = function(dim, g, o, c) {
     //console.log("dim", dim)
     var d = dimensions[dim];
