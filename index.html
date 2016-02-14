@@ -588,6 +588,34 @@ function mapBoxInit() {
 
     })
 
+
+
+    var cursorTrackerDiv = d3.select("#" + container)
+      .append("div")
+        .attr("id", container + "TrackerDiv")
+        .attr("class", "trackerDiv")
+        .style("position", "absolute")
+        .style("top", "0px")
+        .style("left", "0px")
+        .on("mouseover", function() {
+          console.log("mousemove")
+        })
+
+    var cursorTracker = cursorTrackerDiv
+      .append("div")
+        .attr("id", container + "Tracker")
+        .attr("class", "tracker")
+        .style("position", "absolute")
+        .style("top", "-40px")
+        .style("left", "-40px")
+        .style("width", "7px")
+        .style("height", "7px")
+        .style("background-color", "black")
+        .style("border-radius", "50%")
+
+
+
+
     // remove zip code area border when zoomed out
     map.on('zoom', function() {
         var layer = map.getLayer("zipcodesLine");
@@ -598,7 +626,9 @@ function mapBoxInit() {
 
 
     // update the overlay
-    map.on('mousemove', function(e) { mouseMove(e) }) 
+    map.on('mousemove', function(e) { mouseMove(container, e) }) 
+
+
 
 
 
@@ -846,6 +876,17 @@ map2.on = function() {}
   })
 
 
+
+    map.on("drag", function(e) {
+      console.log("drag -----------e", e)
+    })
+    map.on("dragend", function(e) {
+      console.log("dragend -----------e", e)
+    })
+    map.on("dragstart", function(e) {
+      console.log("dragstart -----------e", e)
+    })
+
   // map pitch handlers
   d3.select("#tiltSlider").on("change", function() { tiltSlider.call(this) });
   d3.select("#tiltSlider").on("input",  function() { tiltSlider.call(this) });
@@ -887,10 +928,15 @@ map2.on = function() {}
   })
 
 
-  function mouseMove (e) {
+  function mouseMove (container, e) {
     var fmtPct = d3.format(",.1%");
     var fmtInt = d3.format(",d");
     var fmtFloat = d3.format(".1f");
+
+    //console.log("container", container);
+    var t = container == "map" ? { tracker: "map2", noTracker: "map" } : { tracker: "map", noTracker: "map2" };
+    d3.select("#" + t.tracker + "Tracker").style("left", e.point.x + "px").style("top", e.point.y + "px");
+    d3.select("#" + t.noTracker + "Tracker").style("left", "-40px").style("top", "-40px")    
     
     map.featuresAt(e.point, {radius: 5}, function (error, features) {
       if (error) throw error;
