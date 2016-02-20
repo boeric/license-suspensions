@@ -131,8 +131,8 @@
       bottom: 25px;
       left: 20px;
       /*margin: 0 auto;*/
-      width: 250px;
-      height: 200px;
+      width: 210px;
+      height: 280px;
       background-color: rgba(255, 255, 255, 0.85);
       border: 1px solid gray;
       border-radius: 5px;
@@ -143,6 +143,7 @@
     }
     .dataSelect select {
       margin-top: 8px;
+      width: 200px;
     }
     .legendBox {
       position: absolute;
@@ -210,7 +211,19 @@ var counties,
     zipData,
     map;
 
-var fmt = d3.format(".0f")
+var fmt = d3.format(".0f");
+
+
+var targets = [
+  { name: "SF Bay Area", location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
+  { name: "Central LA", location: [-118.36, 33.92], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
+  { name: "Sacramento", location: [-121.50, 38.53], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
+  { name: "San Diego", location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 }
+]
+
+
+
+
 
 window.onload = function() { start(); }
 
@@ -621,15 +634,8 @@ function mapBoxInit() {
         else map.setPaintProperty("zipcodesLine", "line-width", 0.5);
     });
 
-
     // update the overlay
     map.on('mousemove', function(e) { mouseMove(container, e) }) 
-
-
-
-
-
-
 
     // create title elem above the map
     var titleDiv = d3.select("#" + container)
@@ -718,6 +724,26 @@ function mapBoxInit() {
           .style("margin-top", "0px")
           .text("value");
 
+
+      dataSelectDiv.append("label")
+        .style("display", "block")
+        .text("Quick move")
+
+      var flyToSelect = dataSelectDiv.append("select")
+
+      var options = flyToSelect.selectAll("option")
+          .data(targets)
+        .enter().append("option")
+          .property("value", function(d, i) { return i; })
+          .text(function(d) { return d.name; })
+
+      flyToSelect.on("change", function() {
+        var elem = d3.select(this);
+        var value = elem.property("value");
+        //console.log("----------------------", value)
+        flyTo(targets[+value]);
+      })
+
     }
 
 
@@ -772,11 +798,41 @@ function mapBoxInit() {
 */
 
 
-
-
     // return the map to caller
     return map;
   }
+
+
+
+
+  function fly(idx) {
+    flyTo(targets[idx]);
+  }
+
+  function flyTo(target) {
+
+      map.flyTo({
+        // These options control the ending camera position: centered at
+        // the target, at zoom level 9, and north up.
+        center: target.location,
+        zoom: target.zoom,
+        bearing: target.bearing,
+
+        // These options control the flight curve, making it move
+        // slowly and zoom out almost completely before starting
+        // to pan.
+        speed: target.speed,
+        curve: target.curve,
+
+        // This can be any easing function: it takes a number between
+        // 0 and 1 and returns another number between 0 and 1.
+        easing: function (t) {
+            return t;
+        }
+    });
+  }
+
+window.fly = fly;
 
 
   // init first map
@@ -845,6 +901,7 @@ map2.on = function() {}
       var zoom = map.getZoom();
       var pitch = map.getPitch();
       var bearing = map.getBearing(); 
+      //console.log(center, zoom, pitch, bearing)
 
       disable = true;
       map2.setCenter(center);
