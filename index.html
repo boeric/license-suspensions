@@ -132,7 +132,7 @@
       left: 20px;
       /*margin: 0 auto;*/
       width: 210px;
-      height: 280px;
+      /*height: 280px;*/
       background-color: rgba(255, 255, 255, 0.85);
       border: 1px solid gray;
       border-radius: 5px;
@@ -420,6 +420,7 @@ function mapBoxInit() {
         color: "darkred",
         dist: d3.range(bins)
       },
+
       {
         prop: "povrate",
         title: "Poverty Rate",
@@ -429,6 +430,7 @@ function mapBoxInit() {
         invert: false,
         color: "darkgreen"
       },
+/*
       {
         prop: "IncK",
         title: "Average Income (inverted)",
@@ -438,6 +440,7 @@ function mapBoxInit() {
         invert: false,
         color: "sienna"
       },
+*/
       {
         prop: "Black",
         title: "African American %",
@@ -455,7 +458,8 @@ function mapBoxInit() {
         opacity: 0.85,
         invert: false,
         color: "teal"
-      },
+      }//,
+/*
       {
         prop: "Asian",
         title: "Asian %",
@@ -469,11 +473,12 @@ function mapBoxInit() {
         prop: "WhiteNH",
         title: "White (Non-Hispanic) %",
         inverse: false,
-        gamma: 1,
+        gamma: 0.5,
         opacity: 0.85,
         invert: false,
         color: "tomato"
       }
+*/
     ];
 
   // process dimensions
@@ -659,24 +664,29 @@ function mapBoxInit() {
           .text("Select data series")
 
       dataSelectDiv.append("select")
-          .on("change", function(bla) {
+          .on("change", function() {
             var elem = d3.select(this)
             var value = elem.property("value")
-            dims.some(function(d, i) {
+            console.log("value", value)
+            dims.slice(1).some(function(d, i) {
               if (d.prop == value) {
-                //setDimension(i + 1);
-                setDimension(i);
+                console.log("value", value, "i", i)
+                setDimension(i + 1);
+                //setDimension(i);
                 return true;
               }
             })
           })
           .selectAll("option")
-          .data(dims)
+          .data(dims.slice(1))
         .enter().append("option")
           .attr("value", function(d) { return d.prop })
           .text(function(d) { return d.title })
 
-      var span = dataSelectDiv.append("span")
+      var rangeDiv = dataSelectDiv.append("div")
+          .style("display", "none")
+
+      var span = rangeDiv.append("span")
           .style("display", "block")
           .style("margin-top", "20px")
 
@@ -700,7 +710,7 @@ function mapBoxInit() {
           .style("margin-top", "0px")
           .text("value");
 
-      span = dataSelectDiv.append("span")
+      span = rangeDiv.append("span")
           .style("display", "block")
           .style("margin-top", "20px")
 
@@ -727,9 +737,17 @@ function mapBoxInit() {
 
       dataSelectDiv.append("label")
         .style("display", "block")
+        .style("margin-top", "20px")
         .text("Quick move")
 
       var flyToSelect = dataSelectDiv.append("select")
+          .style("margin-bottom", "10px")
+          .on("change", function() {
+            var elem = d3.select(this);
+            var value = elem.property("value");
+            //console.log("----------------------", value)
+            flyTo(targets[+value]);
+          });
 
       var options = flyToSelect.selectAll("option")
           .data(targets)
@@ -737,12 +755,6 @@ function mapBoxInit() {
           .property("value", function(d, i) { return i; })
           .text(function(d) { return d.name; })
 
-      flyToSelect.on("change", function() {
-        var elem = d3.select(this);
-        var value = elem.property("value");
-        //console.log("----------------------", value)
-        flyTo(targets[+value]);
-      })
 
     }
 
@@ -842,7 +854,7 @@ window.fly = fly;
   
   // init second map
   var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(0)
-  var d = dimensions[0];
+  var d = dimensions[1];
   var map2 = initMap("map2", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList) 
   //window.secondMap = map;
   d3.select("#contrastRange").property("value", d.gamma * 100);
@@ -855,7 +867,8 @@ window.fly = fly;
   var setDimension = function(dim, g, o, c) {
     //console.log("dim", dim)
     var d = dimensions[dim];
-    //console.log("d----------", d)
+    console.log("d----------", d)
+    console.log("dimensions", dimensions)
     if (g != undefined) d.gamma = +g;
     if (o != undefined) d.opacity = +o
     if (c != undefined) d.color = c;
