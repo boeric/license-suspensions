@@ -1,23 +1,11 @@
 <!doctype html>
 <html lang="en">
-<!-- Based on examples by Mike Bostock, MapBox, etc. (see README.md) -->
-<!-- 
-    https://www.mapbox.com/mapbox-gl-js/example/image-on-a-map/, 
-    http://bl.ocks.org/anandthakker/69afa4bfb0c4f5778785, 
-    http://bl.ocks.org/anandthakker/52d26ae7b71b7e23c279,
-    http://bl.ocks.org/AlanPew/ac2f7753e488d8ac66d5
- -->
+
 <!-- Author: Bo Ericsson, Email: bo@boe.net -->
 <head>
   <title>License Suspensions</title>
   <meta charset="UTF-8">
   <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-
-  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.js'></script>
-  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.css' rel='stylesheet' />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
-  <!--<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>-->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>
 
   <style>
     body {
@@ -47,7 +35,7 @@
       max-width: 400px;
       top: 10px;
       left: 10px;
-      border: 1px solid gray;
+      border: 2px solid #D6D6D6;
       border-radius: 5px;
       background-color: white;
       opacity: 0.8;
@@ -65,8 +53,14 @@
       margin: 5px;
       margin-left: 0px;
     }
+    #logoDiv {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+    }
     #main {
       position: absolute;
+      display: none;
       top: 10px;
       left: 20px;
       opacity: 0.85;
@@ -77,7 +71,7 @@
       padding-bottom: 20px;
       z-index: 10000;
       width: 250px;
-      border: 1px solid gray;
+      border: 2px solid #D6D6D6;
     }
     ul {
       font-size: 12px;
@@ -89,6 +83,10 @@
       font-style: italic;
     }
     #howToUse:hover {
+      color: red;
+      cursor: pointer;
+    }
+    #sourcesTitle:hover {
       color: red;
       cursor: pointer;
     }
@@ -124,7 +122,7 @@
       height: 35px;
       background-color: rgba(255, 255, 255, 0.85);
       border-radius: 5px;
-      border: 1px solid gray;
+      border: 2px solid #D6D6D6;
     }
     .dataSelect {
       position: absolute;
@@ -134,9 +132,10 @@
       width: 210px;
       /*height: 280px;*/
       background-color: rgba(255, 255, 255, 0.85);
-      border: 1px solid gray;
+      border: 2px solid #D6D6D6;
       border-radius: 5px;
       padding: 10px 15px;
+      display: none;
     }
     .dataSelect label {
       font-weight: bold;
@@ -157,6 +156,42 @@
       border-radius: 5px;
       padding: 10px 15px;      
     }
+    #loader {
+      position: absolute; 
+      top: 150px;
+      left: 10px;
+      width: 300px;
+      height: 17px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 1);
+      transition: background 1s ease-out;
+      -webkit-transition: background 1s ease-out;
+      border1: 1px solid red;
+    }
+    #loader.done {
+      background: rgba(255, 255, 255, 0);
+    }
+    #loader.hide {
+      display: none;
+    }
+    #loader .message {
+      position: absolute;
+      font-size: 13px;
+    }
+    .legend {
+      position: absolute;
+      bottom: 25px;
+      right: 20px;
+      /*margin: 0 auto;*/
+      width: 128px;
+      background-color: rgba(255, 255, 255, 0.35);
+      border: 2px solid #D6D6D6;
+      border-radius: 5px;
+      display: none;
+    }
+    .legend label {
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -168,6 +203,19 @@
 </div>
 
 <div style="position: relative; display: block">
+  <div id="logoDiv" style="border1: 1px solid black">
+    <div style="border1: 1px solid blue">
+      <a href="http://www.ebclc.org" style="margin-left: 0px"><img src="ebclc_logo.jpg" style="width: 80px"></a>
+    </div>
+  </div>
+
+  <div id="loader" style="border1: 1px solid red">
+    <span id="message" class="message">Loading...</span>
+    <div>
+      <!--<img src="orange_spinner.gif" style="width: 60px">-->
+    </div>
+  </div>
+
   <div id="main">
     <h4 style="margin-bottom: 0px">Driver License Suspensions in</h4>
     <h4 style="margin-top: 0px">California by Zip Code</h4>
@@ -175,18 +223,12 @@
     <div id="controls">
       <p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;
     </div>
-    <p style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">Sources</p>
-    <ul>
-      <li>East Bay Community Law Center</li>
-      <li>CA Deparment of Motor Vehicles</li>
-      <li>US Census Bureau (for geo data)</li>
-    </ul>
 
     <p style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">Map tilt</p>
     <input id="tiltSlider" style="width: 100%" type="range" min="0" max="60" value="0" step="1">
 
     <p id="howToUse" style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">How to use...</p>
-    <ul id="instructions"; style="display: none">
+    <ul id="instructions" style="display: none">
       <li>Move the mouse to see the specifics for the zip code</li>
       <li>The zip code boundaries are shown for each county</li>
       <li>The darker the zip code areas, the higher suspension rate</li>
@@ -196,38 +238,60 @@
       <li>Rotate the map, drag the compass icon in upper right</li>
       <li>To reset the rotation, click the compass icon</li>
     </ul>
+
+    <p id="sourcesTitle" style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">Sources...</p>
+    <ul id="sources" style="display: none">
+      <li>East Bay Community Law Center</li>
+      <li>CA Deparment of Motor Vehicles</li>
+      <li>US Census Bureau (for geo data)</li>
+    </ul>
+
   </div>
 </div>
 
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.css' rel='stylesheet' />
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>-->
+<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>-->
+<script src="../_lib/topojson.min.js" charset="utf-8" type="text/JavaScript"></script>
+
+
 <script>
 "use strict";
-var povDist;
 
-var counties,
+var povDist,
+    counties,
     zipcodes,
     data,
     zipGeo,
     countyZips,
     zipData,
-    map;
+    map,
+    bins = 10,
+    currGamma = 0.50,
+    legendElemWidth = 35,
+    legendElemHeight = 18, //13,
+    legendSvgHeight = bins * legendElemHeight + 20,
+    legendSvgWidth = 128,
+    legendMarginLeft = 47,
+    legendMarginTop = 10,
+    fmt = d3.format(".0f"),
+    fmt1 = d3.format(".1f"),
+    fmtP = d3.format(",.2p"),
+    targets = [
+      { name: "SF Bay Area", location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
+      { name: "Central LA", location: [-118.36, 33.92], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
+      { name: "Sacramento", location: [-121.50, 38.53], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
+      { name: "San Diego", location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 }
+    ],
+    loader = document.getElementById('loader');
 
-var fmt = d3.format(".0f");
-
-
-var targets = [
-  { name: "SF Bay Area", location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
-  { name: "Central LA", location: [-118.36, 33.92], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
-  { name: "Sacramento", location: [-121.50, 38.53], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
-  { name: "San Diego", location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 }
-]
-
-
-
-
+loader.className = '';
 
 window.onload = function() { start(); }
-
 window.onresize = function() { setWindowSize() }
+
 
 function setWindowSize() {
   var width = (window.innerWidth - 6) / 2;
@@ -249,7 +313,6 @@ function setOverlayPos() {
   })    
 }
 setOverlayPos();
-
 
 
 function start() {
@@ -276,6 +339,7 @@ function start() {
     zipGeo = obj; // redefine zipGeo from array to object
 
     // load driver license suspension data
+    d3.select("#message", "Loading driver license suspension data...")
     d3.tsv("suspensions.txt", function(suspensions) {
       console.log("loaded driver license suspension data...");
 
@@ -304,11 +368,13 @@ function start() {
       })
 
       // load county geometry
+      d3.select("#message").text("Loading county boundary data...");
       d3.json("county4.json", function(error, county) {
         counties = topojson.feature(county, county.objects.CaliforniaCounty);
         console.log("loaded county info...");
 
         // load zip code geometry
+        d3.select("#message").text("Loading zip code boundary data...")
         d3.json("ziptopo6.json", function(error, zip) {
           zipcodes = topojson.feature(zip, zip.objects.zip);
           console.log("loaded zip code geo json file...")
@@ -367,6 +433,8 @@ function start() {
 
 function mapBoxInit() {
 
+  d3.select("#message").text("Loading vector maps...")
+
   // mapbox access token
   mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
 
@@ -405,80 +473,101 @@ function mapBoxInit() {
     }
   ];
 
-
-
   // dataset dimensions
-  var bins = 10;
+  //var bins = 10;
   var dimensions = [
       {
         prop: "FTAFTPS100",
-        title: "Suspension Rate",
+        preUnit: "",
+        postUnit: "",
+        fmt: fmtP,
+        divide: 100,
+        title: "DL. Suspension Rate",
         inverse: false,
-        gamma: 0.70,
-        opacity: 0.85,
+        gamma: 0.40, //0.70,
+        opacity: 0.75, //0.85,
         invert: false,
-        color: "darkred",
-        dist: d3.range(bins)
+        color: "darkred"//,
+        //dist: d3.range(bins)
       },
-
       {
         prop: "povrate",
+        preUnit: "",
+        postUnit: "",
+        fmt: fmtP,
+        divide: 100,
         title: "Poverty Rate",
         inverse: false,
-        gamma: .40,
-        opacity: 0.85,
+        gamma: 0.50,
+        opacity: 0.80,
+        invert: false,
+        color: "mediumblue"
+      },
+      {
+        prop: "IncK",
+        preUnit: "$",
+        postUnit: "K",
+        fmt: fmt,
+        divide: 1,
+        title: "Average Income (inverted)",
+        inverse: true,
+        gamma: 0.50,
+        opacity: 0.80,
         invert: false,
         color: "darkgreen"
       },
-/*
-      {
-        prop: "IncK",
-        title: "Average Income (inverted)",
-        inverse: true,
-        gamma: 1.00,
-        opacity: 0.85,
-        invert: false,
-        color: "sienna"
-      },
-*/
       {
         prop: "Black",
+        preUnit: "",
+        postUnit: "",
+        fmt: fmtP,
+        divide: 100,
         title: "African American %",
         inverse: false,
-        gamma: .20,
-        opacity: 0.85,
+        gamma: .50,
+        opacity: 0.80,
         invert: false,
         color: "purple"
       },
       {
         prop: "Hisp",
+        preUnit: "",
+        postUnit: "",
+        fmt: fmtP,
+        divide: 100,
         title: "Hispanic %",
         inverse: false,
         gamma: 0.50,
-        opacity: 0.85,
+        opacity: 0.80,
         invert: false,
         color: "teal"
-      }//,
-/*
+      },
       {
         prop: "Asian",
+        preUnit: "",
+        postUnit: "",
+        fmt: fmtP,
+        divide: 100,
         title: "Asian %",
         inverse: false,
-        gamma: 1,
-        opacity: 0.85,
+        gamma: 0.50,
+        opacity: 0.80,
         invert: false,
         color: "indianred"
       },
       {
         prop: "WhiteNH",
+        preUnit: "",
+        postUnit: "",
+        fmt: fmtP,
+        divide: 100,
         title: "White (Non-Hispanic) %",
         inverse: false,
-        gamma: 0.5,
-        opacity: 0.85,
+        gamma: 0.50,
+        opacity: 0.80,
         invert: false,
-        color: "tomato"
+        color: "dimgray"
       }
-*/
     ];
 
   // process dimensions
@@ -489,6 +578,7 @@ function mapBoxInit() {
       return d.properties[dim.prop];
     })
     dim.range = range;
+    console.log("range", range)
 
     // get values
     var values = zipcodes.features
@@ -522,6 +612,7 @@ function mapBoxInit() {
     }
     dim.filters = layerFilters;
   })
+  d3.select("#message").text("Processed data dimensions...")
   //console.log(JSON.stringify(dimensions, null, 1))
 
 
@@ -531,7 +622,9 @@ function mapBoxInit() {
 
 
   function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
-    
+
+    d3.select("#message").text("Initializing map in container: " + container + "...")
+
     console.log("container", container)
     console.log("prop", prop)
     console.log("color", color)
@@ -566,7 +659,10 @@ function mapBoxInit() {
     layerStack2.forEach(function(d) { layers.push(d) })
 
     // init the map
+    d3.select("#message").text("Creating map...")
 
+    // orig
+    /*
     var map = new mapboxgl.Map({
         container: container,
         maxZoom: 14, //13 
@@ -576,6 +672,20 @@ function mapBoxInit() {
         style: 'mapbox://styles/mapbox/bright-v8',
         hash: false
     });
+    */
+
+    // new SF based initial view
+    //{ name: "SF Bay Area", location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
+    var map = new mapboxgl.Map({
+        container: container,
+        maxZoom: 14, //13 
+        minZoom: 4,
+        zoom: 10,
+        center: [-122.35, 37.78],
+        style: 'mapbox://styles/mapbox/bright-v8',
+        hash: false
+    });
+    d3.select("#message").text("Created map...")
 
 
     // add controls to the map, and event handler
@@ -584,8 +694,24 @@ function mapBoxInit() {
       d3.select("#tiltSlider").property("value", 0)
     })
 
+    map.on("load", function() {
+      console.log("load...")
+      loader.className = 'done';
+      setTimeout(function() {
+        loader.className = 'hide';
+      }, 500);
+
+      d3.select("#main").style("display", "block");
+      setWindowSize();
+
+      d3.select("#map2DataSelect").style("display", "block");
+      d3.selectAll(".legend").style("display", "block")
+    })
+
     // load the counties and zipcode layers at style.load event
     map.on("style.load", function() {
+      console.log("style.load...")
+      d3.select("#message").text("Adding data layers...")
 
       // add the two data sources before adding the layers
       // note: extreme performance penalty if adding the data source repeatedly for each layer
@@ -601,12 +727,13 @@ function mapBoxInit() {
 
       // add the zip code layers
       layers.forEach(function(d, i) {
+        d3.select("#message").text("Adding layer: " + i + "...")
+        //console.log("--Adding layer", d, i)
         map.addLayer(d)
       })
 
+      d3.select("#message").text("Loading map layers – Done");
     })
-
-
 
     var cursorTrackerDiv = d3.select("#" + container)
       .append("div")
@@ -628,9 +755,6 @@ function mapBoxInit() {
         .style("background-color", "black")
         .style("border-radius", "50%")
 
-
-
-
     // remove zip code area border when zoomed out
     map.on('zoom', function() {
         var layer = map.getLayer("zipcodesLine");
@@ -650,8 +774,23 @@ function mapBoxInit() {
 
     titleDiv.append("h2")
         .attr("class", "header")
-        .text(title)
+        .text(title);
 
+    // create the legend div and svg (actual svg contents will be set later)
+    var legendDiv = d3.select("#" + container)
+        .append("div")
+          .attr("id", container + "Legend")
+          .attr("class", "legend")
+
+    legendDiv.append("label")
+        .style("margin-left", (legendMarginLeft - 3) + "px")
+        .text("Legend")
+
+    var svg = legendDiv.append("svg")
+        .attr("width", legendSvgWidth)
+        .attr("height", legendSvgHeight)
+        .attr("id", container + "LegendSvg")
+        .append("g");
 
     // if dimensions array is passed in, then select elem to allow choice of data series
     if (dims) {
@@ -682,9 +821,15 @@ function mapBoxInit() {
         .enter().append("option")
           .attr("value", function(d) { return d.prop })
           .text(function(d) { return d.title })
+      
+      // is there a querystring?
+      var query = window.location.search;
+      query = query.slice(1);
+      var display = "none";
+      if (query === "showSettings=true") display = "block";
 
       var rangeDiv = dataSelectDiv.append("div")
-          .style("display", "none")
+          .style("display", display)
 
       var span = rangeDiv.append("span")
           .style("display", "block")
@@ -711,7 +856,7 @@ function mapBoxInit() {
           .text("value");
 
       span = rangeDiv.append("span")
-          .style("display", "block")
+          .style("display", display)
           .style("margin-top", "20px")
 
       span.append("label")
@@ -735,9 +880,10 @@ function mapBoxInit() {
           .text("value");
 
 
+      // create quick move select
       dataSelectDiv.append("label")
         .style("display", "block")
-        .style("margin-top", "20px")
+        .style("margin-top", "15px")
         .text("Quick move")
 
       var flyToSelect = dataSelectDiv.append("select")
@@ -745,7 +891,7 @@ function mapBoxInit() {
           .on("change", function() {
             var elem = d3.select(this);
             var value = elem.property("value");
-            //console.log("----------------------", value)
+            //console.log(value)
             flyTo(targets[+value]);
           });
 
@@ -755,8 +901,37 @@ function mapBoxInit() {
           .property("value", function(d, i) { return i; })
           .text(function(d) { return d.name; })
 
+      // create contrast radio buttons
+      var contrastData = [{ label: "High", value: 15, checked: false }, { label: "Medium", value: 50, checked: true }, { label: "Low", value: 80, checked: false }]
+      var contrastRadio = dataSelectDiv.append("div")
+      contrastRadio.append("legend")
+          .style("font-weight", "bold")
+          .style("padding", "0px")
+          .style("margin-top", "5px")
+          .text("Contrast");
 
+      contrastRadio.selectAll(".contrastRadioBtn")
+          .data(contrastData)
+        .enter().append("label")
+          .text(function(d) { return d.label; })
+          .style("font-weight", "normal")
+        .append("input")
+          .attr("type", "radio")
+          .attr("name", "contrast")
+          .attr("value", function(d) { return d.value; })
+          .property("checked", function(d) { return d.checked })
+          .style("margin-right", "10px")
+          .text(function(d) { return d.value; })
+          .on("change", function() {
+            var value = d3.select("input[name=contrast]:checked").property("value")
+            console.log("value", value)
+            var dim = getDimension();
+            setDimension(dim, value / 100);
+            updateMainContrast(value / 100);
+          })
     }
+
+
 
 
 
@@ -783,43 +958,20 @@ function mapBoxInit() {
       //console.log("d", d)
       d.opacity = value / 100;
 
-
       setDimension(dim, d.gamma, d.opacity, d.color)
     }
-
-/*
-    // create legend panel
-    var legendDiv = d3.select("#" + container)
-      .append("div")
-        .attr("id", container + "Legend")
-        .attr("class", "legendBox");
-
-    var svg = legendDiv.append("svg")
-        .attr("width", 100)
-        .attr("height", 400)
-        .style("border", "1px solid lightgray")
-      .append("g")
-        .style("transform", "translate(10 10")
-
-    svg.append("rect")
-        .attr("x", 10)
-        .attr("y", 10)
-        .attr("width", 50)
-        .attr("height", 100)
-        .style("fill", "blue")
-*/
 
 
     // return the map to caller
     return map;
   }
-
-
+  // end initMap
 
 
   function fly(idx) {
     flyTo(targets[idx]);
   }
+
 
   function flyTo(target) {
 
@@ -844,30 +996,52 @@ function mapBoxInit() {
     });
   }
 
-window.fly = fly;
-
 
   // init first map
   var d = dimensions[0];
+  d3.select("#message").text("Initializing first map panel...")
   map = initMap("map", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
+  updateLegend("map", d)
   //window.firstMap = map;
-  
+
   // init second map
   var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(0)
   var d = dimensions[1];
+
+  d3.select("#message").text("Initializing second map panel...")
   var map2 = initMap("map2", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList) 
   //window.secondMap = map;
+  updateLegend("map2", d)
+
+  d3.select("#message").text("Loading map layers...")
+
   d3.select("#contrastRange").property("value", d.gamma * 100);
   d3.select("#contrastText").text(fmt(d.gamma * 100));
   d3.select("#opacityRange").property("value", d.opacity * 100);
   d3.select("#opacityText").text(fmt(d.opacity * 100));
 
 
-  var currDim = 0;
+  var updateMainContrast = function(gamma) {
+    var d = dimensions[0];
+    d.gamma = gamma;
+    d3.range(bins).forEach(function(p) {
+      var layerId = "dataLayer" + p;
+      //map.setFilter(layerId, d.filters[p])
+      //map.setPaintProperty(layerId, "fill-color", d.color);
+      var gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins; 
+      map.setPaintProperty(layerId, "fill-opacity", calcGamma(gammaArg, d.gamma) * d.opacity);
+    })
+
+    // update legend
+    updateLegend("map", d)
+  }
+
+
+  var currDim = 1;
   var setDimension = function(dim, g, o, c) {
-    //console.log("dim", dim)
     var d = dimensions[dim];
-    console.log("d----------", d)
+    console.log("dim", dim)
+    console.log("d", d)
     console.log("dimensions", dimensions)
     if (g != undefined) d.gamma = +g;
     if (o != undefined) d.opacity = +o
@@ -892,21 +1066,157 @@ window.fly = fly;
     d3.select("#opacityRange").property("value", d.opacity * 100);
     d3.select("#opacityText").text(fmt(d.opacity * 100));
 
+    // update legend
+    updateLegend("map2", d)
+
   }
-  //setDimension(1);
+
+  // attach to window for debugging
   window.setDimension = setDimension;
+
 
   function getDimension() {
     return currDim;
   }
 
 
-/*
-var map = {};
-map.on = function() {}
-var map2 = {};
-map2.on = function() {}
-*/
+  // updates the legend with colors, opacities and threshold text
+  function updateLegend(map, dim) {
+
+    var data = d3.range(bins).map(function(e, i) {
+      var obj = {};
+      obj.color = dim.color;
+      var gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins; 
+      var gammaArg = (i + 1) / bins; 
+      obj.opacity = calcGamma(gammaArg, dim.gamma) * dim.opacity;
+      obj.value = dim.dist[i];
+      obj.preUnit = dim.preUnit;
+      obj.postUnit = dim.postUnit;
+      obj.fmt = dim.fmt;
+      obj.divide = dim.divide;
+      obj.inverse = dim.inverse;
+      return obj;
+    })
+
+    var tickData = data.slice();
+    tickData.push({ last: true, value: dim.range[1], preUnit: dim.preUnit, postUnit: dim.postUnit, fmt: dim.fmt, divide: dim.divide, inverse: dim.inverse })
+    if (dim.inverse) tickData.reverse();
+
+    var svg = d3.select("#" + map + "LegendSvg").select("g")
+
+    // append opaque background
+    svg.selectAll(".backgroundRect")
+        .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: "white", opacity: 1 }])
+      .enter().append("rect")
+        .attr("class", "backgroundRect")
+        .style("width", function(d) { return d.width; })
+        .style("height", function(d) { return d.height; })
+        .style("x", function(d) { return d.x + "px"; })
+        .style("y", function(d) { return d.y + "px"; }) 
+        .style("fill", function(d) { return d.color; }) 
+        .style("opacity", function(d) { return d.opacity; }) 
+  
+    var boxes = svg.selectAll(".foregroundRect")
+        .data(data)
+
+    boxes
+      .enter().append("rect")
+        .attr("class", "foregroundRect")
+        .style("width", legendElemWidth)
+        .style("height", legendElemHeight)
+        .style("x", legendMarginLeft + "px")
+        .style("y", function(d, i) { 
+          return legendMarginTop + i * legendElemHeight
+        })
+        .style("stroke", "gray")
+
+    boxes
+        .style("fill", function(d) {
+          return d.color;
+        })
+        .style("opacity", function(d) {
+          return d.opacity;
+        });
+
+
+    var ticks = svg.selectAll(".leftTick")
+        .data(tickData)
+      .enter().append("line")
+        .attr("class", "leftTick")
+        .attr("x1", legendMarginLeft - 5)
+        .attr("x2", legendMarginLeft + legendElemWidth + 5)
+        .attr("y1", function(d, i) {
+          return legendMarginTop + i * legendElemHeight
+        })
+        .attr("y2", function(d, i) {
+          return legendMarginTop + i * legendElemHeight
+        })
+        .style("stroke", "gray")
+
+    var leftScale = svg.selectAll(".leftScale")
+        .data(tickData)
+      .enter().append("text")
+        .attr("class", "leftScale")
+        .attr("x", legendMarginLeft - 6)
+        .attr("y", function(d, i) {
+          return legendMarginTop + 3 + i * legendElemHeight
+        })
+        .text(function(d, i) {
+          //return dim.inverse ? (bins - i) * 10 + "%" : i * 10 + "%";
+          //return i * 10 + "%";
+          return (bins - i) / bins * 100 + "%" 
+
+        })
+        .attr("text-anchor", "end")
+        .style("font-size", "10px")
+
+    var rightScale = svg.selectAll(".rightScale")
+      .data(tickData)
+
+    rightScale
+    .enter().append("text")
+      .attr("class", "rightScale")
+
+    rightScale
+      .attr("x", legendMarginLeft + legendElemWidth + 6)
+      .attr("y", function(d, i) {
+        return legendMarginTop + 3 + i * legendElemHeight
+      })
+      .text(function(d, i) {
+        return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit;
+      })
+      .attr("text-anchor", "start")
+      .style("font-size", "10px")
+
+    svg.selectAll(".leftLegendTitle")
+        .data([{ text: "Percentiles", rotate: "270" }])
+      .enter().append("text")
+        .attr("class", "leftLegendTitle")
+        .style("text-anchor", "middle")
+        .attr("transform", "rotate(270)")
+        .attr("x", function() {
+          return -legendSvgHeight / 2;
+        })
+        .attr("y", 12)
+        .style("font-weight", "bold")
+        .text("Percentiles");
+
+    svg.selectAll(".rightLegendTitle")
+        .data([{ text: "Thresholds", rotate: "90" }])
+      .enter().append("text")
+        .attr("class", "rightLegendTitle")
+        .style("text-anchor", "middle")
+        .attr("transform", "rotate(90)")
+        .attr("x", function() {
+          return legendSvgHeight / 2;
+        })
+        .attr("y", -115)
+        .style("font-weight", "bold")
+        .text("Thresholds");
+
+  }
+
+
   var disable = false;
   map.on("move", function() {
     if (!disable) {
@@ -943,16 +1253,16 @@ map2.on = function() {}
   })
 
 
+  map.on("drag", function(e) {
+    console.log("drag -----------e", e)
+  })
+  map.on("dragend", function(e) {
+    console.log("dragend -----------e", e)
+  })
+  map.on("dragstart", function(e) {
+    console.log("dragstart -----------e", e)
+  })
 
-    map.on("drag", function(e) {
-      console.log("drag -----------e", e)
-    })
-    map.on("dragend", function(e) {
-      console.log("dragend -----------e", e)
-    })
-    map.on("dragstart", function(e) {
-      console.log("dragstart -----------e", e)
-    })
 
   // map pitch handlers
   d3.select("#tiltSlider").on("change", function() { tiltSlider.call(this) });
@@ -993,6 +1303,19 @@ map2.on = function() {}
 
     setOverlayPos();
   })
+
+  // handler for "sources" div
+  d3.select("#sourcesTitle").on("click", function() {
+    var state = d3.select("#sources").style("display");
+    if (state == "none") state = "block";
+    else state = "none";
+    d3.select("#sources").style("display", state);
+    d3.select(this).text(function() {
+      return state == "none" ? "Sources..." : "Sources";
+    })
+
+    setOverlayPos();
+  })  
 
 
   function mouseMove (container, e) {
@@ -1068,8 +1391,6 @@ map2.on = function() {}
       manageSidePanel(text);
     });
   };
-
-
 
 }
 
