@@ -1219,11 +1219,11 @@ function mapBoxInit() {
         .text("Thresholds");
 
     svg.selectAll(".percentileTracker")
-        .data([{ radius: 5, percentile: 3 }])
+        .data([{ radius: 4, percentile: 3 }])
       .enter().append("circle")
         .attr("class", "percentileTracker")
         .attr("cx", (legendMarginLeft + legendElemWidth / 2))
-        .attr("cy", function(d) { return d.percentile * legendElemHeight })
+        .attr("cy", function(d) { return d.percentile * legendElemHeight + 1 })
         .attr("r", function(d) { return d.radius })
         .style("fill", "black")
 
@@ -1233,6 +1233,8 @@ function mapBoxInit() {
   function updatePercentileMarker(zipCode) {
     var idx = -1;
     var idx2 = -1;
+    var inverse = false;
+    var inverse2 = false;
 
     //console.log("^^", zipCode)
     if (zipCode == "") {
@@ -1248,33 +1250,38 @@ function mapBoxInit() {
         if (d > value) return true;
         idx++;
       })
+      inverse = dim.inverse;
       //console.log("percentile: " + idx)
 
       // handle map2
-      var dim = dimensions[getDimension()];
-      var value = data[dim.prop]
-      var dist = dim.dist;
+      dim = dimensions[getDimension()];
+      value = data[dim.prop]
+      dist = dim.dist;
       dist.some(function(d) {
         if (d > value) return true;
         idx2++;
       })
+      inverse2 = dim.inverse;
       //console.log("percentile2: " + idx2)
     }
 
     // set the marker
-    setPercentileMarker("map", idx)
-    setPercentileMarker("map2", idx2)
+    setPercentileMarker("map", idx, inverse)
+    setPercentileMarker("map2", idx2, inverse2)
   }
 
 
-  function setPercentileMarker(map, percentile) {
-    console.log("--", map, percentile)
-    //tracker.attr("cy", function(d) { return d.percentile * legendElemHeight });
+  function setPercentileMarker(map, percentile, inverse) {
+    var pos = percentile == -1 ? -100 : inverse ? (bins - percentile) * legendElemHeight : (percentile + 1) * legendElemHeight
     d3.select("#" + map + "LegendSvg").select("g").select(".percentileTracker")
         .attr("cy", function() {
-          return (percentile + 1) * legendElemHeight;
+          return pos
         })
   }
+
+  // init
+  setPercentileMarker("map", -1, false);
+  setPercentileMarker("map2", -1, false);
 
 
 
