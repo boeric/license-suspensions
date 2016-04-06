@@ -127,7 +127,7 @@
     .dataSelect {
       position: absolute;
       bottom: 25px;
-      left: 20px;
+      /*left: 20px;*/
       /*margin: 0 auto;*/
       width: 210px;
       /*height: 280px;*/
@@ -783,6 +783,8 @@ function mapBoxInit() {
         .append("div")
           .attr("id", container + "Legend")
           .attr("class", "legend")
+          .style("right", function(d) { return container == "map2" ? null : "20px" })
+          .style("left", function(d) { return container == "map2" ? "20px" : null; })
 
     legendDiv.append("label")
         .style("margin-left", (legendMarginLeft - 3) + "px")
@@ -800,6 +802,8 @@ function mapBoxInit() {
         .append("div")
           .attr("id", container + "DataSelect")
           .attr("class", "dataSelect")
+          .style("right", function(d) { return container == "map2" ? "20px" : null; })
+          .style("left", function(d) { return container == "map2" ? null : "20px" })
 
       dataSelectDiv.append("label")
           .text("Select data series")
