@@ -158,7 +158,7 @@
     }
     #loader {
       position: absolute; 
-      top: 150px;
+      top: 180px;
       left: 10px;
       width: 300px;
       height: 17px;
@@ -205,7 +205,7 @@
 <div style="position: relative; display: block">
   <div id="logoDiv" style="border1: 1px solid black">
     <div style="border1: 1px solid blue">
-      <a href="http://www.ebclc.org" style="margin-left: 0px"><img src="ebclc_logo.jpg" style="width: 80px"></a>
+      <a href="http://www.ebclc.org" style="margin-left: 0px"><img src="BOTRCA Logo.png" style="width: 150px"></a>
     </div>
   </div>
 
@@ -218,7 +218,7 @@
 
   <div id="main">
     <h4 style="margin-bottom: 0px">Driver License Suspensions in California by Zip Code</h4>
-    <p style="margin-top: 0px; font-weight: bold">Due to "Failure to Pay" or "Failure to Appear"</p>
+    <p style="margin-top: 10px; font-weight: bold">Due to "Failure to Pay" or "Failure to Appear"</p>
     <div id="controls">
       <p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;
     </div>
@@ -250,10 +250,10 @@
 
 <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.css' rel='stylesheet' />
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>-->
-<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>-->
-<script src="../_lib/topojson.min.js" charset="utf-8" type="text/JavaScript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+<!--<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>
+<!--<script src="../_lib/topojson.min.js" charset="utf-8" type="text/JavaScript"></script>-->
 
 
 <script>
@@ -502,6 +502,7 @@ function mapBoxInit() {
         invert: false,
         color: "mediumblue"
       },
+/*
       {
         prop: "IncK",
         preUnit: "$",
@@ -515,6 +516,7 @@ function mapBoxInit() {
         invert: false,
         color: "darkgreen"
       },
+*/
       {
         prop: "Black",
         preUnit: "",
@@ -534,7 +536,7 @@ function mapBoxInit() {
         postUnit: "",
         fmt: fmtP,
         divide: 100,
-        title: "Hispanic %",
+        title: "Latino %",
         inverse: false,
         gamma: 0.50,
         opacity: 0.80,
@@ -560,7 +562,7 @@ function mapBoxInit() {
         postUnit: "",
         fmt: fmtP,
         divide: 100,
-        title: "White (Non-Hispanic) %",
+        title: "White (Non-Latino) %",
         inverse: false,
         gamma: 0.50,
         opacity: 0.80,
@@ -577,7 +579,7 @@ function mapBoxInit() {
       return d.properties[dim.prop];
     })
     dim.range = range;
-    console.log("range", range)
+    //console.log("range", range)
 
     // get values
     var values = zipcodes.features
@@ -623,7 +625,7 @@ function mapBoxInit() {
   function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
 
     d3.select("#message").text("Initializing map in container: " + container + "...")
-
+/*
     console.log("container", container)
     console.log("prop", prop)
     console.log("color", color)
@@ -633,7 +635,8 @@ function mapBoxInit() {
     console.log("filters", filters)
     console.log("title", title)
     console.log("dims", dims)
-    
+*/
+
     var dataLayers = [];
     
     for (var p = 0; p < bins; p++) {
@@ -694,7 +697,7 @@ function mapBoxInit() {
     })
 
     map.on("load", function() {
-      console.log("load...")
+      //console.log("load...")
       loader.className = 'done';
       setTimeout(function() {
         loader.className = 'hide';
@@ -709,7 +712,7 @@ function mapBoxInit() {
 
     // load the counties and zipcode layers at style.load event
     map.on("style.load", function() {
-      console.log("style.load...")
+      //console.log("style.load...")
       d3.select("#message").text("Adding data layers...")
 
       // add the two data sources before adding the layers
@@ -805,12 +808,9 @@ function mapBoxInit() {
           .on("change", function() {
             var elem = d3.select(this)
             var value = elem.property("value")
-            console.log("value", value)
             dims.slice(1).some(function(d, i) {
               if (d.prop == value) {
-                console.log("value", value, "i", i)
                 setDimension(i + 1);
-                //setDimension(i);
                 return true;
               }
             })
@@ -923,16 +923,13 @@ function mapBoxInit() {
           .text(function(d) { return d.value; })
           .on("change", function() {
             var value = d3.select("input[name=contrast]:checked").property("value")
-            console.log("value", value)
+            //console.log("value", value)
             currGamma = value / 100;
             var dim = getDimension();
             setDimension(dim);
             updateMainContrast();
           })
     }
-
-
-
 
 
     function rangeContrastEvent() {
@@ -945,22 +942,18 @@ function mapBoxInit() {
       setDimension(dim, value / 100)
     }
 
+
     function rangeOpacityEvent() {
       var elem = d3.select(this)
       var value = elem.property("value")
-      //console.log("value", value)
       d3.select("#opacityText").text(value);
 
-      //console.log("--------", JSON.stringify(dimensions, null, 1))
       var dim = getDimension();
-      //console.log("dim", dim)
       var d = dimensions[dim];
-      //console.log("d", d)
       d.opacity = value / 100;
 
       setDimension(dim, d.gamma, d.opacity, d.color)
     }
-
 
     // return the map to caller
     return map;
@@ -997,14 +990,14 @@ function mapBoxInit() {
   }
 
 
-  // init first map
+  // init first (left) map
   var d = dimensions[0];
   d3.select("#message").text("Initializing first map panel...")
   map = initMap("map", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
   updateLegend("map", d)
   //window.firstMap = map;
 
-  // init second map
+  // init second (right) map
   var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(0)
   var d = dimensions[1];
 
@@ -1040,9 +1033,9 @@ function mapBoxInit() {
   var currDim = 1;
   var setDimension = function(dim, g, o, c) {
     var d = dimensions[dim];
-    console.log("dim", dim)
-    console.log("d", d)
-    console.log("dimensions", dimensions)
+    //console.log("dim", dim)
+    //console.log("d", d)
+    //console.log("dimensions", dimensions)
     if (g != undefined) {
       d.gamma = +g;
       currGamma = d.gamma;
@@ -1168,8 +1161,8 @@ function mapBoxInit() {
         .text(function(d, i) {
           //return dim.inverse ? (bins - i) * 10 + "%" : i * 10 + "%";
           //return i * 10 + "%";
-          return (bins - i) / bins * 100 + "%" 
-
+          //return (bins - i) / bins * 100 + "%" 
+          return i / bins * 100 + "%" 
         })
         .attr("text-anchor", "end")
         .style("font-size", "10px")
@@ -1279,7 +1272,7 @@ function mapBoxInit() {
         })
   }
 
-  // init
+  // init percentile markers
   setPercentileMarker("map", -1, false);
   setPercentileMarker("map2", -1, false);
 
@@ -1323,13 +1316,13 @@ function mapBoxInit() {
 
 
   map.on("drag", function(e) {
-    console.log("drag -----------e", e)
+    //console.log("drag -----------e", e)
   })
   map.on("dragend", function(e) {
-    console.log("dragend -----------e", e)
+    //console.log("dragend -----------e", e)
   })
   map.on("dragstart", function(e) {
-    console.log("dragstart -----------e", e)
+    //console.log("dragstart -----------e", e)
   })
 
 
@@ -1416,7 +1409,7 @@ function mapBoxInit() {
         Pop15Plus: "",
         IncK: "",
         Black: "",
-        Hisp: "",
+        Lat: "",
         Asian: "",
         White: "",
       };
@@ -1468,7 +1461,7 @@ function mapBoxInit() {
         "<b>Avg Income: $" + fmtFloat("" + item.IncK) + "K</b>",
         "<b>Racial composition: </b>" + 
             " Black: " + fmtPct("" + item.Black / 100) + 
-            " Hisp: " +  fmtPct("" + item.Hisp  / 100) + 
+            " Lat: " +  fmtPct("" + item.Hisp  / 100) + 
             " Asian: " + fmtPct("" + item.Asian / 100) +
             " White: " + fmtPct("" + item.White / 100)
       ];
