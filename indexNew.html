@@ -261,10 +261,8 @@
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
   ga('create', 'UA-72836906-2', 'auto');
   ga('send', 'pageview');
-
 </script>
 
 
@@ -280,7 +278,7 @@ var povDist,
     zipData,
     map,
     bins = 10,
-    currGamma = 0.40,
+    currGamma = 0.15,
     legendElemWidth = 35,
     legendElemHeight = 18, //13,
     legendSvgHeight = bins * legendElemHeight + 20,
@@ -495,7 +493,7 @@ function mapBoxInit() {
         divide: 100,
         title: "DL. Suspension Rate",
         inverse: false,
-        gamma: 0.40, //0.70,
+        gamma: 0.15, //0.40, //0.70,
         opacity: 0.75, //0.85,
         invert: false,
         color: "darkred"//,
@@ -509,7 +507,7 @@ function mapBoxInit() {
         divide: 100,
         title: "Poverty Rate",
         inverse: false,
-        gamma: 0.50,
+        gamma: 0.15, //0.50,
         opacity: 0.80,
         invert: false,
         color: "mediumblue"
@@ -523,7 +521,7 @@ function mapBoxInit() {
         divide: 1,
         title: "Average Income (inverted)",
         inverse: true,
-        gamma: 0.50,
+        gamma: 0.18, //0.50,
         opacity: 0.80,
         invert: false,
         color: "darkgreen"
@@ -537,7 +535,7 @@ function mapBoxInit() {
         divide: 100,
         title: "African American %",
         inverse: false,
-        gamma: .50,
+        gamma: 0.15, //.50,
         opacity: 0.80,
         invert: false,
         color: "purple"
@@ -550,7 +548,7 @@ function mapBoxInit() {
         divide: 100,
         title: "Latino %",
         inverse: false,
-        gamma: 0.50,
+        gamma: 0.15, //0.50,
         opacity: 0.80,
         invert: false,
         color: "teal"
@@ -563,7 +561,7 @@ function mapBoxInit() {
         divide: 100,
         title: "Asian %",
         inverse: false,
-        gamma: 0.50,
+        gamma: 0.15, //0.50,
         opacity: 0.80,
         invert: false,
         color: "indianred"
@@ -576,7 +574,7 @@ function mapBoxInit() {
         divide: 100,
         title: "White (Non-Latino) %",
         inverse: false,
-        gamma: 0.50,
+        gamma: 0.15, //0.50,
         opacity: 0.80,
         invert: false,
         color: "dimgray"
@@ -917,7 +915,7 @@ function mapBoxInit() {
           .text(function(d) { return d.name; })
 
       // create contrast radio buttons
-      var contrastData = [{ label: "High", value: 15, checked: false }, { label: "Medium", value: 40, checked: true }, { label: "Low", value: 80, checked: false }]
+      var contrastData = [{ label: "High", value: 15, checked: true }, { label: "Medium", value: 40, checked: false }, { label: "Low", value: 80, checked: false }]
       var contrastRadio = dataSelectDiv.append("div")
       contrastRadio.append("legend")
           .style("font-weight", "bold")
@@ -946,7 +944,6 @@ function mapBoxInit() {
             updateMainContrast();
           })
     }
-
 
     function rangeContrastEvent() {
       var elem = d3.select(this)
@@ -1081,7 +1078,6 @@ function mapBoxInit() {
 
     // update legend
     updateLegend("map2", d)
-
   }
 
   // attach to window for debugging
@@ -1148,7 +1144,7 @@ function mapBoxInit() {
           return d.color;
         })
         .style("opacity", function(d) {
-          return d.opacity;
+          return d.opacity + 0.0001;
         });
 
 
@@ -1235,8 +1231,8 @@ function mapBoxInit() {
         .attr("cy", function(d) { return d.percentile * legendElemHeight + 1 })
         .attr("r", function(d) { return d.radius })
         .style("fill", "black")
-
   }
+
 
 
   function updatePercentileMarker(zipCode) {
