@@ -90,6 +90,9 @@
       color: red;
       cursor: pointer;
     }
+    #sources li {
+      margin-top: 5px;
+    }
     #map, #map2 { 
       position: absolute; 
       top: 0px; 
@@ -238,12 +241,17 @@
       <li>To reset the rotation, click the compass icon</li>
     </ul>
 
-    <p id="sourcesTitle" style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">Sources...</p>
+    <p id="sourcesTitle" style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">About...</p>
     <ul id="sources" style="display: none">
-      <li>East Bay Community Law Center</li>
-      <li>CA Deparment of Motor Vehicles</li>
-      <li>US Census Bureau (for geo data)</li>
-      <li>Interactive map engineering: <br>Bo Ericsson <br>(bo@boe.net,<a href="https://github.com/boeric" style="margin-left: 5px">github.com/boeric</a>)</li>
+      <li>
+        Sources: CA DMV (license suspension data); US Census 2014 ACS (demographic data)
+      </li>
+      <li>
+        Released April 2016 in conjunction with the Back on the Road CA coalition's Stopped, Fined, Arrested report. More information at <a href="http://www.ebclc.org/backontheroad" target="_blank" style="margin-left: 0px">www.ebclc.org/backontheroad</a>
+      </li>
+      <li>
+        Interactive map engineering: <br>Bo Ericsson (bo@boe.net,<br><a href="https://github.com/boeric" target="_blank" style="margin-left: 0px">github.com/boeric</a>)
+      </li>
     </ul>
 
   </div>
@@ -1385,7 +1393,7 @@ function mapBoxInit() {
     else state = "none";
     d3.select("#sources").style("display", state);
     d3.select(this).text(function() {
-      return state == "none" ? "Sources..." : "Sources (close)";
+      return state == "none" ? "About..." : "About (close)";
     })
 
     setOverlayPos();

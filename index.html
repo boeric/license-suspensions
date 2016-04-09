@@ -90,6 +90,9 @@
       color: red;
       cursor: pointer;
     }
+    #sources li {
+      margin-top: 5px;
+    }
     #map, #map2 { 
       position: absolute; 
       top: 0px; 
@@ -127,7 +130,7 @@
     .dataSelect {
       position: absolute;
       bottom: 25px;
-      left: 20px;
+      /*left: 20px;*/
       /*margin: 0 auto;*/
       width: 210px;
       /*height: 280px;*/
@@ -158,7 +161,7 @@
     }
     #loader {
       position: absolute; 
-      top: 150px;
+      top: 180px;
       left: 10px;
       width: 300px;
       height: 17px;
@@ -205,7 +208,7 @@
 <div style="position: relative; display: block">
   <div id="logoDiv" style="border1: 1px solid black">
     <div style="border1: 1px solid blue">
-      <a href="http://www.ebclc.org" style="margin-left: 0px"><img src="ebclc_logo.jpg" style="width: 80px"></a>
+      <a href="http://www.ebclc.org" style="margin-left: 0px"><img src="BOTRCA Logo.png" style="width: 150px"></a>
     </div>
   </div>
 
@@ -218,7 +221,7 @@
 
   <div id="main">
     <h4 style="margin-bottom: 0px">Driver License Suspensions in California by Zip Code</h4>
-    <p style="margin-top: 0px; font-weight: bold">Due to "Failure to Pay" or "Failure to Appear"</p>
+    <p style="margin-top: 10px; font-weight: bold">Due to "Failure to Pay" or "Failure to Appear"</p>
     <div id="controls">
       <p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;
     </div>
@@ -238,11 +241,17 @@
       <li>To reset the rotation, click the compass icon</li>
     </ul>
 
-    <p id="sourcesTitle" style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">Sources...</p>
+    <p id="sourcesTitle" style="margin-top: 10px; margin-bottom: 0px; font-weight: bold">About...</p>
     <ul id="sources" style="display: none">
-      <li>East Bay Community Law Center</li>
-      <li>CA Deparment of Motor Vehicles</li>
-      <li>US Census Bureau (for geo data)</li>
+      <li>
+        Sources: CA DMV (license suspension data); US Census 2014 ACS (demographic data)
+      </li>
+      <li>
+        Released April 2016 in conjunction with the Back on the Road CA coalition's Stopped, Fined, Arrested report. More information at <a href="http://www.ebclc.org/backontheroad" target="_blank" style="margin-left: 0px">www.ebclc.org/backontheroad</a>
+      </li>
+      <li>
+        Interactive map engineering: <br>Bo Ericsson (bo@boe.net,<br><a href="https://github.com/boeric" target="_blank" style="margin-left: 0px">github.com/boeric</a>)
+      </li>
     </ul>
 
   </div>
@@ -250,16 +259,30 @@
 
 <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.11.4/mapbox-gl.css' rel='stylesheet' />
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>-->
-<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>-->
-<script src="../_lib/topojson.min.js" charset="utf-8" type="text/JavaScript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+<!--<script src="../_lib/d3.min.js" charset="utf-8" type="text/JavaScript"></script>-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.js" type="text/JavaScript"></script>
+<!--<script src="../_lib/topojson.min.js" charset="utf-8" type="text/JavaScript"></script>-->
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-72836906-2', 'auto');
+  ga('send', 'pageview');
+</script>
 
 
 <script>
 "use strict";
 
-var povDist,
+var dataSet = window.location.search.indexOf("dataFile=2015") != -1 ? "old" : "new",
+    zipData = "cazipgeo.txt",
+    suspData = dataSet == "old" ? "suspensions.txt" : "suspensions2016.txt",
+    countyTopo = "county4.json",
+    zipTopo = "ziptopo6.json",
+    povDist,
     counties,
     zipcodes,
     data,
@@ -268,7 +291,7 @@ var povDist,
     zipData,
     map,
     bins = 10,
-    currGamma = 0.40,
+    currGamma = 0.15,
     legendElemWidth = 35,
     legendElemHeight = 18, //13,
     legendSvgHeight = bins * legendElemHeight + 20,
@@ -317,7 +340,7 @@ setOverlayPos();
 function start() {
 
   // load zip code data 
-  d3.tsv("cazipgeo.txt", function(_) {
+  d3.tsv(zipData, function(_) {
     zipGeo = _;
 
     // create object for quick lookup of a county's zip codes (used by code that dynamically injects zip code geometry)
@@ -336,10 +359,11 @@ function start() {
       delete obj[key].ZipCode;
     })
     zipGeo = obj; // redefine zipGeo from array to object
+    console.log("zipGeo", zipGeo)
 
     // load driver license suspension data
     d3.select("#message", "Loading driver license suspension data...")
-    d3.tsv("suspensions.txt", function(suspensions) {
+    d3.tsv(suspData, function(suspensions) {
       console.log("loaded driver license suspension data...");
 
       // merge in the zip geo data and create main data structure
@@ -365,16 +389,17 @@ function start() {
       data.forEach(function(d) {
         zipData[d.ZipCode] = d;
       })
+      console.log("zipData", zipData)
 
       // load county geometry
       d3.select("#message").text("Loading county boundary data...");
-      d3.json("county4.json", function(error, county) {
+      d3.json(countyTopo, function(error, county) {
         counties = topojson.feature(county, county.objects.CaliforniaCounty);
         console.log("loaded county info...");
 
         // load zip code geometry
         d3.select("#message").text("Loading zip code boundary data...")
-        d3.json("ziptopo6.json", function(error, zip) {
+        d3.json(zipTopo, function(error, zip) {
           zipcodes = topojson.feature(zip, zip.objects.zip);
           console.log("loaded zip code geo json file...")
 
@@ -387,20 +412,35 @@ function start() {
           console.log("zipcodes", zipcodes);
 
           var nodataZipCodes = [];
+          var undefCount = 0;
           zipcodes.features.forEach(function(d) {
             d.properties.zip = +d.properties.zip;
             var zipCode = d.properties.zip;
 
             if (zipData[zipCode] == undefined) {
               nodataZipCodes.push(zipCode);
+
+              var zipGeoItem = zipGeo[zipCode];
               d.properties.noData = true;
+              d.properties.ZipCode = zipCode;
+              d.properties.Places = zipGeoItem ? zipGeo[zipCode].Places : "";
+              d.properties.City = zipGeoItem ? zipGeo[zipCode].City : "";
+              d.properties.FTAFTPS100 = "";
+              d.properties.povrate = "";
+              d.properties.Pop15Plus = "";
+              d.properties.IncK = "";
+              d.properties.Black = "";
+              d.properties.Hisp = "";
+              d.properties.WhiteNH = "";
+              d.properties.Asian = -1;
+              if (d.properties.City == "") console.log("--", d.properties)
             }
             else {
               d.properties.noData = false;
               d.properties.ZipCode = zipData[d.properties.zip].ZipCode;              
               d.properties.Places = zipData[d.properties.zip].Places;
-              d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
               d.properties.City = zipData[d.properties.zip].City;
+              d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
               d.properties.povrate = zipData[d.properties.zip].povrate;
               d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
               d.properties.IncK = zipData[d.properties.zip].IncK;
@@ -415,6 +455,7 @@ function start() {
           console.log("Zip codes with no data: ", nodataZipCodes.length)
 
           zipcodes.features = zipcodes.features.filter(function(d) {
+            return true;
             if (d.properties.noData) return false;
             else return true;
           })
@@ -483,7 +524,7 @@ function mapBoxInit() {
         divide: 100,
         title: "DL. Suspension Rate",
         inverse: false,
-        gamma: 0.40, //0.70,
+        gamma: 0.15, //0.40, //0.70,
         opacity: 0.75, //0.85,
         invert: false,
         color: "darkred"//,
@@ -497,11 +538,12 @@ function mapBoxInit() {
         divide: 100,
         title: "Poverty Rate",
         inverse: false,
-        gamma: 0.50,
+        gamma: 0.15, //0.50,
         opacity: 0.80,
         invert: false,
         color: "mediumblue"
       },
+/*
       {
         prop: "IncK",
         preUnit: "$",
@@ -510,11 +552,12 @@ function mapBoxInit() {
         divide: 1,
         title: "Average Income (inverted)",
         inverse: true,
-        gamma: 0.50,
+        gamma: 0.18, //0.50,
         opacity: 0.80,
         invert: false,
         color: "darkgreen"
       },
+*/
       {
         prop: "Black",
         preUnit: "",
@@ -523,7 +566,7 @@ function mapBoxInit() {
         divide: 100,
         title: "African American %",
         inverse: false,
-        gamma: .50,
+        gamma: 0.15, //.50,
         opacity: 0.80,
         invert: false,
         color: "purple"
@@ -534,9 +577,9 @@ function mapBoxInit() {
         postUnit: "",
         fmt: fmtP,
         divide: 100,
-        title: "Hispanic %",
+        title: "Latino %",
         inverse: false,
-        gamma: 0.50,
+        gamma: 0.15, //0.50,
         opacity: 0.80,
         invert: false,
         color: "teal"
@@ -549,7 +592,7 @@ function mapBoxInit() {
         divide: 100,
         title: "Asian %",
         inverse: false,
-        gamma: 0.50,
+        gamma: 0.15, //0.50,
         opacity: 0.80,
         invert: false,
         color: "indianred"
@@ -560,9 +603,9 @@ function mapBoxInit() {
         postUnit: "",
         fmt: fmtP,
         divide: 100,
-        title: "White (Non-Hispanic) %",
+        title: "White (Non-Latino) %",
         inverse: false,
-        gamma: 0.50,
+        gamma: 0.15, //0.50,
         opacity: 0.80,
         invert: false,
         color: "dimgray"
@@ -577,7 +620,7 @@ function mapBoxInit() {
       return d.properties[dim.prop];
     })
     dim.range = range;
-    console.log("range", range)
+    //console.log("range", range)
 
     // get values
     var values = zipcodes.features
@@ -623,7 +666,7 @@ function mapBoxInit() {
   function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
 
     d3.select("#message").text("Initializing map in container: " + container + "...")
-
+/*
     console.log("container", container)
     console.log("prop", prop)
     console.log("color", color)
@@ -633,7 +676,8 @@ function mapBoxInit() {
     console.log("filters", filters)
     console.log("title", title)
     console.log("dims", dims)
-    
+*/
+
     var dataLayers = [];
     
     for (var p = 0; p < bins; p++) {
@@ -694,7 +738,7 @@ function mapBoxInit() {
     })
 
     map.on("load", function() {
-      console.log("load...")
+      //console.log("load...")
       loader.className = 'done';
       setTimeout(function() {
         loader.className = 'hide';
@@ -709,7 +753,7 @@ function mapBoxInit() {
 
     // load the counties and zipcode layers at style.load event
     map.on("style.load", function() {
-      console.log("style.load...")
+      //console.log("style.load...")
       d3.select("#message").text("Adding data layers...")
 
       // add the two data sources before adding the layers
@@ -780,6 +824,8 @@ function mapBoxInit() {
         .append("div")
           .attr("id", container + "Legend")
           .attr("class", "legend")
+          .style("right", function(d) { return container == "map2" ? null : "20px" })
+          .style("left", function(d) { return container == "map2" ? "20px" : null; })
 
     legendDiv.append("label")
         .style("margin-left", (legendMarginLeft - 3) + "px")
@@ -797,6 +843,8 @@ function mapBoxInit() {
         .append("div")
           .attr("id", container + "DataSelect")
           .attr("class", "dataSelect")
+          .style("right", function(d) { return container == "map2" ? "20px" : null; })
+          .style("left", function(d) { return container == "map2" ? null : "20px" })
 
       dataSelectDiv.append("label")
           .text("Select data series")
@@ -805,12 +853,9 @@ function mapBoxInit() {
           .on("change", function() {
             var elem = d3.select(this)
             var value = elem.property("value")
-            console.log("value", value)
             dims.slice(1).some(function(d, i) {
               if (d.prop == value) {
-                console.log("value", value, "i", i)
                 setDimension(i + 1);
-                //setDimension(i);
                 return true;
               }
             })
@@ -821,11 +866,10 @@ function mapBoxInit() {
           .attr("value", function(d) { return d.prop })
           .text(function(d) { return d.title })
       
-      // is there a querystring?
+      // is there a querystring showSettings parameter?
       var query = window.location.search;
-      query = query.slice(1);
       var display = "none";
-      if (query === "showSettings=true") display = "block";
+      if (query.indexOf("showSettings=true") != -1) display = "block";
 
       var rangeDiv = dataSelectDiv.append("div")
           .style("display", display)
@@ -901,7 +945,7 @@ function mapBoxInit() {
           .text(function(d) { return d.name; })
 
       // create contrast radio buttons
-      var contrastData = [{ label: "High", value: 15, checked: false }, { label: "Medium", value: 40, checked: true }, { label: "Low", value: 80, checked: false }]
+      var contrastData = [{ label: "High", value: 15, checked: true }, { label: "Medium", value: 40, checked: false }, { label: "Low", value: 80, checked: false }]
       var contrastRadio = dataSelectDiv.append("div")
       contrastRadio.append("legend")
           .style("font-weight", "bold")
@@ -923,17 +967,13 @@ function mapBoxInit() {
           .text(function(d) { return d.value; })
           .on("change", function() {
             var value = d3.select("input[name=contrast]:checked").property("value")
-            console.log("value", value)
+            //console.log("value", value)
             currGamma = value / 100;
             var dim = getDimension();
             setDimension(dim);
             updateMainContrast();
           })
     }
-
-
-
-
 
     function rangeContrastEvent() {
       var elem = d3.select(this)
@@ -945,22 +985,18 @@ function mapBoxInit() {
       setDimension(dim, value / 100)
     }
 
+
     function rangeOpacityEvent() {
       var elem = d3.select(this)
       var value = elem.property("value")
-      //console.log("value", value)
       d3.select("#opacityText").text(value);
 
-      //console.log("--------", JSON.stringify(dimensions, null, 1))
       var dim = getDimension();
-      //console.log("dim", dim)
       var d = dimensions[dim];
-      //console.log("d", d)
       d.opacity = value / 100;
 
       setDimension(dim, d.gamma, d.opacity, d.color)
     }
-
 
     // return the map to caller
     return map;
@@ -997,14 +1033,14 @@ function mapBoxInit() {
   }
 
 
-  // init first map
+  // init first (left) map
   var d = dimensions[0];
   d3.select("#message").text("Initializing first map panel...")
   map = initMap("map", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
   updateLegend("map", d)
   //window.firstMap = map;
 
-  // init second map
+  // init second (right) map
   var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(0)
   var d = dimensions[1];
 
@@ -1040,9 +1076,9 @@ function mapBoxInit() {
   var currDim = 1;
   var setDimension = function(dim, g, o, c) {
     var d = dimensions[dim];
-    console.log("dim", dim)
-    console.log("d", d)
-    console.log("dimensions", dimensions)
+    //console.log("dim", dim)
+    //console.log("d", d)
+    //console.log("dimensions", dimensions)
     if (g != undefined) {
       d.gamma = +g;
       currGamma = d.gamma;
@@ -1072,7 +1108,6 @@ function mapBoxInit() {
 
     // update legend
     updateLegend("map2", d)
-
   }
 
   // attach to window for debugging
@@ -1139,7 +1174,7 @@ function mapBoxInit() {
           return d.color;
         })
         .style("opacity", function(d) {
-          return d.opacity;
+          return d.opacity + 0.0001;
         });
 
 
@@ -1168,8 +1203,8 @@ function mapBoxInit() {
         .text(function(d, i) {
           //return dim.inverse ? (bins - i) * 10 + "%" : i * 10 + "%";
           //return i * 10 + "%";
-          return (bins - i) / bins * 100 + "%" 
-
+          //return (bins - i) / bins * 100 + "%" 
+          return i / bins * 100 + "%" 
         })
         .attr("text-anchor", "end")
         .style("font-size", "10px")
@@ -1219,62 +1254,69 @@ function mapBoxInit() {
         .text("Thresholds");
 
     svg.selectAll(".percentileTracker")
-        .data([{ radius: 5, percentile: 3 }])
+        .data([{ radius: 4, percentile: 3 }])
       .enter().append("circle")
         .attr("class", "percentileTracker")
         .attr("cx", (legendMarginLeft + legendElemWidth / 2))
-        .attr("cy", function(d) { return d.percentile * legendElemHeight })
+        .attr("cy", function(d) { return d.percentile * legendElemHeight + 1 })
         .attr("r", function(d) { return d.radius })
         .style("fill", "black")
-
   }
+
 
 
   function updatePercentileMarker(zipCode) {
     var idx = -1;
     var idx2 = -1;
+    var inverse = false;
+    var inverse2 = false;
 
-    //console.log("^^", zipCode)
     if (zipCode == "") {
       //console.log("remove")
     } else {
       var data = zipData[zipCode];
+      if (data) {
 
-      // handle map (dim 0)
-      var dim = dimensions[0];
-      var value = data[dim.prop]
-      var dist = dim.dist;
-      dist.some(function(d) {
-        if (d > value) return true;
-        idx++;
-      })
-      //console.log("percentile: " + idx)
+        // handle map (dim 0)
+        var dim = dimensions[0];
+        var value = data[dim.prop]
+        var dist = dim.dist;
+        dist.some(function(d) {
+          if (d > value) return true;
+          idx++;
+        })
+        inverse = dim.inverse;
 
-      // handle map2
-      var dim = dimensions[getDimension()];
-      var value = data[dim.prop]
-      var dist = dim.dist;
-      dist.some(function(d) {
-        if (d > value) return true;
-        idx2++;
-      })
-      //console.log("percentile2: " + idx2)
+        // handle map2
+        dim = dimensions[getDimension()];
+        value = data[dim.prop]
+        dist = dim.dist;
+        dist.some(function(d) {
+          if (d > value) return true;
+          idx2++;
+        })
+        inverse2 = dim.inverse;
+        //console.log("percentile2: " + idx2)
+      }
     }
 
     // set the marker
-    setPercentileMarker("map", idx)
-    setPercentileMarker("map2", idx2)
+    setPercentileMarker("map", idx, inverse)
+    setPercentileMarker("map2", idx2, inverse2)
   }
 
 
-  function setPercentileMarker(map, percentile) {
-    console.log("--", map, percentile)
-    //tracker.attr("cy", function(d) { return d.percentile * legendElemHeight });
+  function setPercentileMarker(map, percentile, inverse) {
+    var pos = percentile == -1 ? -100 : inverse ? (bins - percentile) * legendElemHeight : (percentile + 1) * legendElemHeight
     d3.select("#" + map + "LegendSvg").select("g").select(".percentileTracker")
         .attr("cy", function() {
-          return (percentile + 1) * legendElemHeight;
+          return pos
         })
   }
+
+  // init percentile markers
+  setPercentileMarker("map", -1, false);
+  setPercentileMarker("map2", -1, false);
 
 
 
@@ -1316,13 +1358,13 @@ function mapBoxInit() {
 
 
   map.on("drag", function(e) {
-    console.log("drag -----------e", e)
+    //console.log("drag -----------e", e)
   })
   map.on("dragend", function(e) {
-    console.log("dragend -----------e", e)
+    //console.log("dragend -----------e", e)
   })
   map.on("dragstart", function(e) {
-    console.log("dragstart -----------e", e)
+    //console.log("dragstart -----------e", e)
   })
 
 
@@ -1360,7 +1402,7 @@ function mapBoxInit() {
     else state = "none";
     d3.select("#instructions").style("display", state);
     d3.select(this).text(function() {
-      return state == "none" ? "How to use..." : "How to use";
+      return state == "none" ? "How to use..." : "How to use (close)";
     })
 
     setOverlayPos();
@@ -1373,7 +1415,7 @@ function mapBoxInit() {
     else state = "none";
     d3.select("#sources").style("display", state);
     d3.select(this).text(function() {
-      return state == "none" ? "Sources..." : "Sources";
+      return state == "none" ? "About..." : "About (close)";
     })
 
     setOverlayPos();
@@ -1397,6 +1439,7 @@ function mapBoxInit() {
       // separate county and zip code entries in the features array
       var countyInfo = features.filter(function(d) { if (d.properties.ALAND != undefined) return true });
       var zipInfo = features.filter(function(d) { if (d.properties.City != undefined) return true });
+      console.log("zipInfo", zipInfo)
 
       // clear properties
       var item = {
@@ -1450,6 +1493,7 @@ function mapBoxInit() {
         "White: <b>" + fmtPct("" + item.White / 100) + "</b>"
       ];
       */
+      //console.log("item", item)
       var text = [
         "<b>Location: </b>" +
             " <b>" + item.Places + "</b>" +
@@ -1461,7 +1505,7 @@ function mapBoxInit() {
         "<b>Avg Income: $" + fmtFloat("" + item.IncK) + "K</b>",
         "<b>Racial composition: </b>" + 
             " Black: " + fmtPct("" + item.Black / 100) + 
-            " Hisp: " +  fmtPct("" + item.Hisp  / 100) + 
+            " Lat: " +  fmtPct("" + item.Hisp  / 100) + 
             " Asian: " + fmtPct("" + item.Asian / 100) +
             " White: " + fmtPct("" + item.White / 100)
       ];
