@@ -268,8 +268,8 @@
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-  ga('create', 'UA-72836906-2', 'auto');
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-72836906-3', 'auto');
   ga('send', 'pageview');
 </script>
 
@@ -359,7 +359,7 @@ function start() {
       delete obj[key].ZipCode;
     })
     zipGeo = obj; // redefine zipGeo from array to object
-    console.log("zipGeo", zipGeo)
+    //console.log("zipGeo", zipGeo)
 
     // load driver license suspension data
     d3.select("#message", "Loading driver license suspension data...")
@@ -389,7 +389,7 @@ function start() {
       data.forEach(function(d) {
         zipData[d.ZipCode] = d;
       })
-      console.log("zipData", zipData)
+      //console.log("zipData", zipData)
 
       // load county geometry
       d3.select("#message").text("Loading county boundary data...");
@@ -409,7 +409,7 @@ function start() {
             if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
           })
           //console.log("number of zipcodes: ", zipcodes.features.length)
-          console.log("zipcodes", zipcodes);
+          //console.log("zipcodes", zipcodes);
 
           var nodataZipCodes = [];
           var undefCount = 0;
@@ -422,18 +422,6 @@ function start() {
 
               var zipGeoItem = zipGeo[zipCode];
               d.properties.noData = true;
-              d.properties.ZipCode = zipCode;
-              d.properties.Places = zipGeoItem ? zipGeo[zipCode].Places : "";
-              d.properties.City = zipGeoItem ? zipGeo[zipCode].City : "";
-              d.properties.FTAFTPS100 = "";
-              d.properties.povrate = "";
-              d.properties.Pop15Plus = "";
-              d.properties.IncK = "";
-              d.properties.Black = "";
-              d.properties.Hisp = "";
-              d.properties.WhiteNH = "";
-              d.properties.Asian = -1;
-              if (d.properties.City == "") console.log("--", d.properties)
             }
             else {
               d.properties.noData = false;
@@ -455,7 +443,6 @@ function start() {
           console.log("Zip codes with no data: ", nodataZipCodes.length)
 
           zipcodes.features = zipcodes.features.filter(function(d) {
-            return true;
             if (d.properties.noData) return false;
             else return true;
           })
@@ -1439,7 +1426,6 @@ function mapBoxInit() {
       // separate county and zip code entries in the features array
       var countyInfo = features.filter(function(d) { if (d.properties.ALAND != undefined) return true });
       var zipInfo = features.filter(function(d) { if (d.properties.City != undefined) return true });
-      console.log("zipInfo", zipInfo)
 
       // clear properties
       var item = {
