@@ -208,7 +208,7 @@
 <div style="position: relative; display: block">
   <div id="logoDiv" style="border1: 1px solid black">
     <div style="border1: 1px solid blue">
-      <a href="http://www.ebclc.org" style="margin-left: 0px"><img src="BOTRCA Logo.png" style="width: 150px"></a>
+      <a href="http://www.ebclc.org/backontheroad/problem" target="_blank" style="margin-left: 0px"><img src="BOTRCA Logo.png" style="width: 150px"></a>
     </div>
   </div>
 
@@ -247,7 +247,7 @@
         Sources: CA DMV (license suspension data); US Census 2014 ACS (demographic data)
       </li>
       <li>
-        Released April 2016 in conjunction with the Back on the Road CA coalition's Stopped, Fined, Arrested report. More information at <a href="http://www.ebclc.org/backontheroad" target="_blank" style="margin-left: 0px">www.ebclc.org/backontheroad</a>
+        Released April 2016 in conjunction with the Back on the Road CA coalition's Stopped, Fined, Arrested report. More information at <a href="http://www.ebclc.org/backontheroad/problem" target="_blank" style="margin-left: 0px">www.ebclc.org/backontheroad</a>
       </li>
       <li>
         Interactive map engineering: <br>Bo Ericsson (bo@boe.net,<br><a href="https://github.com/boeric" target="_blank" style="margin-left: 0px">github.com/boeric</a>)
@@ -1135,10 +1135,10 @@ function mapBoxInit() {
         .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: "white", opacity: 1 }])
       .enter().append("rect")
         .attr("class", "backgroundRect")
-        .style("width", function(d) { return d.width; })
-        .style("height", function(d) { return d.height; })
-        .style("x", function(d) { return d.x + "px"; })
-        .style("y", function(d) { return d.y + "px"; }) 
+        .attr("width", function(d) { return d.width; })
+        .attr("height", function(d) { return d.height; })
+        .attr("x", function(d) { return d.x; })
+        .attr("y", function(d) { return d.y; }) 
         .style("fill", function(d) { return d.color; }) 
         .style("opacity", function(d) { return d.opacity; }) 
   
@@ -1148,10 +1148,10 @@ function mapBoxInit() {
     boxes
       .enter().append("rect")
         .attr("class", "foregroundRect")
-        .style("width", legendElemWidth)
-        .style("height", legendElemHeight)
-        .style("x", legendMarginLeft + "px")
-        .style("y", function(d, i) { 
+        .attr("width", legendElemWidth)
+        .attr("height", legendElemHeight)
+        .attr("x", legendMarginLeft)
+        .attr("y", function(d, i) { 
           return legendMarginTop + i * legendElemHeight
         })
         .style("stroke", "gray")
