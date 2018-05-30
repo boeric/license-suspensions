@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en">
 <!-- Based on examples by Mike Bostock, MapBox, etc. (see README.md) -->
-<!-- 
-    https://www.mapbox.com/mapbox-gl-js/example/image-on-a-map/, 
-    http://bl.ocks.org/anandthakker/69afa4bfb0c4f5778785, 
+<!--
+    https://www.mapbox.com/mapbox-gl-js/example/image-on-a-map/,
+    http://bl.ocks.org/anandthakker/69afa4bfb0c4f5778785,
     http://bl.ocks.org/anandthakker/52d26ae7b71b7e23c279,
     http://bl.ocks.org/AlanPew/ac2f7753e488d8ac66d5
  -->
@@ -92,11 +92,11 @@
       color: red;
       cursor: pointer;
     }
-    #map, #map2 { 
-      position: absolute; 
-      top: 0px; 
-      bottom: 0px; 
-      width: 100%; 
+    #map, #map2 {
+      position: absolute;
+      top: 0px;
+      bottom: 0px;
+      width: 100%;
       border: 1px solid black;
     }
     #map2 {
@@ -155,7 +155,7 @@
       background-color: rgba(255, 255, 255, 0.85);
       border: 1px solid gray;
       border-radius: 5px;
-      padding: 10px 15px;      
+      padding: 10px 15px;
     }
   </style>
 </head>
@@ -200,629 +200,530 @@
 </div>
 
 <script>
-"use strict";
-var povDist;
+  /* eslint-disable no-var, quotes, strict, no-undef, no-console, max-len, vars-on-top, func-names, no-use-before-define, prefer-template, prefer-arrow-callback, no-param-reassign, array-bracket-spacing, brace-style, no-shadow, no-multi-spaces, no-mixed-operators, object-shorthand, no-alert, quote-props, newline-per-chained-call */
 
-var counties,
-    zipcodes,
-    data,
-    zipGeo,
-    countyZips,
-    zipData,
-    map;
+  "use strict";
 
-var fmt = d3.format(".0f");
+  var counties;
+  var zipcodes;
+  var data;
+  var zipGeo;
+  var countyZips;
+  var zipData;
+  var map;
 
+  var fmt = d3.format(".0f");
 
-var targets = [
-  { name: "SF Bay Area", location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
-  { name: "Central LA", location: [-118.36, 33.92], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
-  { name: "Sacramento", location: [-121.50, 38.53], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
-  { name: "San Diego", location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 }
-]
+  var targets = [
+    { name: "SF Bay Area", location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
+    { name: "Central LA", location: [-118.36, 33.92], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
+    { name: "Sacramento", location: [-121.50, 38.53], zoom: 9.9, bearing: 0, speed: 1, curve: 1 },
+    { name: "San Diego", location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 },
+  ];
 
+  window.onload = function () { start(); };
+  window.onresize = function () { setWindowSize(); };
 
+  function setOverlayPos() {
+    var main = d3.select("#main");
+    var height = main.node().offsetHeight;
+    var windowHeight = window.innerHeight;
 
+    main.style("top", function () {
+      return Math.max(10, windowHeight - height - 25) + "px";
+    });
+  }
 
+  function setWindowSize() {
+    var width = (window.innerWidth - 6) / 2;
+    d3.select("#map").style("width", width + "px");
+    d3.select("#map2").style("width", width + "px");
 
-window.onload = function() { start(); }
+    setOverlayPos();
+  }
 
-window.onresize = function() { setWindowSize() }
-
-function setWindowSize() {
-  var width = (window.innerWidth - 6) / 2;
-  d3.select("#map").style("width", width + "px")
-  d3.select("#map2").style("width", width + "px")
-
+  setWindowSize();
   setOverlayPos();
-}
-setWindowSize();
 
 
-function setOverlayPos() {
-  var main = d3.select("#main");
-  var height = main.node().offsetHeight;
-  var windowHeight = window.innerHeight;
+  function start() {
+    // load zip code data
+    d3.tsv("cazipgeo.txt", function (_) {
+      zipGeo = _;
 
-  main.style("top", function(d) {
-    return Math.max(10, window.innerHeight - height - 25) + "px"
-  })    
-}
-setOverlayPos();
+      // create object for quick lookup of a county's zip codes (used by code that dynamically injects zip code geometry)
+      countyZips = {};
+      zipGeo.forEach(function (d) {
+        var key = d.County.trim();
+        if (countyZips[key] === undefined) countyZips[key] = [];
+        countyZips[key].push(+d.ZipCode);
+      });
 
+      // create data structure used to merge zip code and suspension data
+      var obj = {};
+      zipGeo.forEach(function (d) {
+        var key = d.ZipCode.trim();
+        obj[key] = d;
+        delete obj[key].ZipCode;
+      });
+      zipGeo = obj; // redefine zipGeo from array to object
 
+      // load driver license suspension data
+      d3.tsv("suspensions.txt", function (suspensions) {
+        // merge in the zip geo data and create main data structure
+        data = suspensions.map(function (d) {
+          var zipData = zipGeo[d.ZipCode];
+          Object.keys(zipData).forEach(function (prop) { d[prop] = zipData[prop]; });
+          return d;
+        });
 
-function start() {
+        // convert to numbers
+        data.forEach(function (d) {
+          var props = Object.keys(d);
+          props.forEach(function (prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; });
+        });
 
-  // load zip code data 
-  d3.tsv("cazipgeo.txt", function(_) {
-    zipGeo = _;
+        // sort data in ascending order (so highest suspension rates are drawn last and on top of the stack)
+        data.sort(function (a, b) {
+          return a.FTAFTPS100 - b.FTAFTPS100;
+        });
 
-    // create object for quick lookup of a county's zip codes (used by code that dynamically injects zip code geometry)
-    countyZips = {};
-    zipGeo.forEach(function(d) {
-      var key = d.County.trim(); 
-      if (countyZips[key] == undefined) countyZips[key] = [];
-      countyZips[key].push(+d.ZipCode)
-    })
+        // create data structure for quick lookup (used by zip code geometry event handler)
+        zipData = {};
+        data.forEach(function (d) {
+          zipData[d.ZipCode] = d;
+        });
 
-    // create data structure used to merge zip code and suspension data
-    var obj = {};
-    zipGeo.forEach(function(d) {
-      var key = d.ZipCode.trim(); 
-      obj[key] = d;
-      delete obj[key].ZipCode;
-    })
-    zipGeo = obj; // redefine zipGeo from array to object
+        // load county geometry
+        d3.json("county4.json", function (error, county) {
+          if (error) {
+            // TODO: handle error, throw exception
+          }
 
-    // load driver license suspension data
-    d3.tsv("suspensions.txt", function(suspensions) {
-      console.log("loaded driver license suspension data...");
+          counties = topojson.feature(county, county.objects.CaliforniaCounty);
 
-      // merge in the zip geo data and create main data structure
-      data = suspensions.map(function(d, i, a) {
-        var zipData = zipGeo[d.ZipCode];
-        Object.keys(zipData).forEach(function(prop) { d[prop] = zipData[prop]; })
-        return d;
-      })
-
-      // convert to numbers
-      data.forEach(function(d) {
-        var props = Object.keys(d);
-        props.forEach(function(prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; })
-      })
-
-      // sort data in ascending order (so highest suspension rates are drawn last and on top of the stack)
-      data.sort(function(a, b) {
-        return a.FTAFTPS100 - b.FTAFTPS100;
-      })
-
-      // create data structure for quick lookup (used by zip code geometry event handler)
-      zipData = {};
-      data.forEach(function(d) {
-        zipData[d.ZipCode] = d;
-      })
-
-      // load county geometry
-      d3.json("county4.json", function(error, county) {
-        counties = topojson.feature(county, county.objects.CaliforniaCounty);
-        console.log("loaded county info...");
-
-        // load zip code geometry
-        d3.json("ziptopo6.json", function(error, zip) {
-          zipcodes = topojson.feature(zip, zip.objects.zip);
-          console.log("loaded zip code geo json file...")
-
-          var caZipCodeMin = 90001;
-          var caZipCodeMax = 96162;
-          zipcodes.features = zipcodes.features.filter(function(item) {
-            if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
-          })
-          //console.log("number of zipcodes: ", zipcodes.features.length)
-          console.log("zipcodes", zipcodes);
-
-          var nodataZipCodes = [];
-          zipcodes.features.forEach(function(d) {
-            d.properties.zip = +d.properties.zip;
-            var zipCode = d.properties.zip;
-
-            if (zipData[zipCode] == undefined) {
-              nodataZipCodes.push(zipCode);
-              d.properties.noData = true;
-            }
-            else {
-              d.properties.noData = false;
-              d.properties.ZipCode = zipData[d.properties.zip].ZipCode;              
-              d.properties.Places = zipData[d.properties.zip].Places;
-              d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
-              d.properties.City = zipData[d.properties.zip].City;
-              d.properties.povrate = zipData[d.properties.zip].povrate;
-              d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
-              d.properties.IncK = zipData[d.properties.zip].IncK;
-              d.properties.Black = zipData[d.properties.zip].Black;
-              d.properties.Hisp = zipData[d.properties.zip].Hisp;
-              d.properties.WhiteNH = zipData[d.properties.zip].WhiteNH;
-              d.properties.Asian = zipData[d.properties.zip].Asian;
+          // load zip code geometry
+          d3.json("ziptopo6.json", function (error, zip) {
+            if (error) {
+              // TODO handle error, throw exception
             }
 
-          })
-          //console.log("nodataZipCodes: ", nodataZipCodes)
-          console.log("Zip codes with no data: ", nodataZipCodes.length)
+            zipcodes = topojson.feature(zip, zip.objects.zip);
 
-          zipcodes.features = zipcodes.features.filter(function(d) {
-            if (d.properties.noData) return false;
-            else return true;
-          })
-          //console.log("zipcodes.features.length: ", zipcodes.features)
-          console.log("Zip codes with data: ", zipcodes.features.length);
+            var caZipCodeMin = 90001;
+            var caZipCodeMax = 96162;
+            zipcodes.features = zipcodes.features.filter(function (item) {
+              if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) {
+                return true;
+              }
+              return false;
+            });
 
-          if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
-          else mapBoxInit();
-        })
-      })
-    })
-  })
-}
+            var nodataZipCodes = [];
+            zipcodes.features.forEach(function (d) {
+              d.properties.zip = +d.properties.zip;
+              var zipCode = d.properties.zip;
 
+              if (zipData[zipCode] === undefined) {
+                nodataZipCodes.push(zipCode);
+                d.properties.noData = true;
+              }
+              else {
+                d.properties.noData = false;
+                d.properties.ZipCode = zipData[d.properties.zip].ZipCode;
+                d.properties.Places = zipData[d.properties.zip].Places;
+                d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
+                d.properties.City = zipData[d.properties.zip].City;
+                d.properties.povrate = zipData[d.properties.zip].povrate;
+                d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
+                d.properties.IncK = zipData[d.properties.zip].IncK;
+                d.properties.Black = zipData[d.properties.zip].Black;
+                d.properties.Hisp = zipData[d.properties.zip].Hisp;
+                d.properties.WhiteNH = zipData[d.properties.zip].WhiteNH;
+                d.properties.Asian = zipData[d.properties.zip].Asian;
+              }
+            });
 
-function mapBoxInit() {
+            zipcodes.features = zipcodes.features.filter(function (d) {
+              if (d.properties.noData) return false;
+              return true;
+            });
 
-  // mapbox access token
-  mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
-
-  // define map layers
-  var layerStack0 =  [    
-    {
-      "id": "countiesArea",
-      "interactive": true,
-      "source": "counties",
-      "type": "fill",
-      "paint": {
-        "fill-color": "white",
-        "fill-opacity": 0.1//0.01
-      }
-    },
-    {
-      "id": "countiesLine",
-      "source": "counties",
-      "type": "line",
-      "paint": {
-        "line-color": "#999",
-        "line-width": 1,
-      }
-    }
-  ];
-
-  var layerStack2 = [
-    {
-      "id": "zipcodesLine",
-      "source": "zipcodes",
-      "type": "line",
-      "paint": {
-        "line-color": "darkred",
-        "line-width": 0 //0.5,
-      }
-    }
-  ];
-
-
-
-  // dataset dimensions
-  var bins = 10;
-  var dimensions = [
-      {
-        prop: "FTAFTPS100",
-        title: "Suspension Rate",
-        inverse: false,
-        gamma: 0.70,
-        opacity: 0.85,
-        invert: false,
-        color: "darkred",
-        dist: d3.range(bins)
-      },
-
-      {
-        prop: "povrate",
-        title: "Poverty Rate",
-        inverse: false,
-        gamma: .40,
-        opacity: 0.85,
-        invert: false,
-        color: "darkgreen"
-      },
-/*
-      {
-        prop: "IncK",
-        title: "Average Income (inverted)",
-        inverse: true,
-        gamma: 1.00,
-        opacity: 0.85,
-        invert: false,
-        color: "sienna"
-      },
-*/
-      {
-        prop: "Black",
-        title: "African American %",
-        inverse: false,
-        gamma: .20,
-        opacity: 0.85,
-        invert: false,
-        color: "purple"
-      },
-      {
-        prop: "Hisp",
-        title: "Hispanic %",
-        inverse: false,
-        gamma: 0.50,
-        opacity: 0.85,
-        invert: false,
-        color: "teal"
-      }//,
-/*
-      {
-        prop: "Asian",
-        title: "Asian %",
-        inverse: false,
-        gamma: 1,
-        opacity: 0.85,
-        invert: false,
-        color: "indianred"
-      },
-      {
-        prop: "WhiteNH",
-        title: "White (Non-Hispanic) %",
-        inverse: false,
-        gamma: 0.5,
-        opacity: 0.85,
-        invert: false,
-        color: "tomato"
-      }
-*/
-    ];
-
-  // process dimensions
-  dimensions.forEach(function(dim) {
-
-    // get range
-    var range = d3.extent(zipcodes.features, function(d, i) {
-      return d.properties[dim.prop];
-    })
-    dim.range = range;
-
-    // get values
-    var values = zipcodes.features
-        .map(function(d) { return d.properties[dim.prop] })
-        .sort(function(a, b) { return a - b; })
-
-    // get distribution
-    if (!dim.dist) {
-      var dist = d3.range(bins).map(function(d) {
-        return d3.quantile(values, d / bins);
-      })
-      dim.dist = dist;
-    }
-
-    // generate filters
-    var layerFilters = [];
-    for (var p = 0; p < bins; p++) {
-      var filters;
-      if (p < bins - 1) {
-        filters = [ 'all',
-          [ '>=', dim.prop, dim.dist[p] ],
-          [ '<', dim.prop, dim.dist[p + 1] ]
-        ]
-      } 
-      else {
-        filters = [ 'all',
-          [ '>=', dim.prop, dim.dist[p] ]
-        ]
-      }
-      layerFilters.push(filters);
-    }
-    dim.filters = layerFilters;
-  })
-  //console.log(JSON.stringify(dimensions, null, 1))
-
-
-  function calcGamma(val, gamma) {
-    return Math.pow(val, (1 / gamma));
+            if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
+            else mapBoxInit();
+          });
+        });
+      });
+    });
   }
 
 
-  function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
-    
-    console.log("container", container)
-    console.log("prop", prop)
-    console.log("color", color)
-    console.log("gamma", gamma)
-    console.log("opacity", opacity)
-    console.log("levels", levels)
-    console.log("filters", filters)
-    console.log("title", title)
-    console.log("dims", dims)
-    
-    var dataLayers = [];
-    
-    for (var p = 0; p < bins; p++) {
+  function mapBoxInit() {
+    // mapbox access token
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
 
-      // add the layer and filters to the dataLayers array
-      dataLayers.push({
-        id: "dataLayer" + p,
-        interactive: true,
-        type: 'fill',
-        source: 'zipcodes', 
-        paint: {
-          'fill-color': color,
-          'fill-opacity': calcGamma((p + 1) / bins, gamma) * opacity
+    // define map layers
+    var layerStack0 =  [
+      {
+        "id": "countiesArea",
+        "interactive": true,
+        "source": "counties",
+        "type": "fill",
+        "paint": {
+          "fill-color": "white",
+          "fill-opacity": 0.1, //0.01
         },
-        filter: filters[p]
-      })
+      },
+      {
+        "id": "countiesLine",
+        "source": "counties",
+        "type": "line",
+        "paint": {
+          "line-color": "#999",
+          "line-width": 1,
+        },
+      },
+    ];
+
+    var layerStack2 = [
+      {
+        "id": "zipcodesLine",
+        "source": "zipcodes",
+        "type": "line",
+        "paint": {
+          "line-color": "darkred",
+          "line-width": 0, // 0.5,
+        },
+      },
+    ];
+
+    // dataset dimensions
+    var bins = 10;
+    var dimensions = [{
+      prop: "FTAFTPS100",
+      title: "Suspension Rate",
+      inverse: false,
+      gamma: 0.70,
+      opacity: 0.85,
+      invert: false,
+      color: "darkred",
+      dist: d3.range(bins),
+    }, {
+      prop: "povrate",
+      title: "Poverty Rate",
+      inverse: false,
+      gamma: 0.40,
+      opacity: 0.85,
+      invert: false,
+      color: "darkgreen",
+    }, {
+      prop: "Black",
+      title: "African American %",
+      inverse: false,
+      gamma: 0.20,
+      opacity: 0.85,
+      invert: false,
+      color: "purple",
+    }, {
+      prop: "Hisp",
+      title: "Hispanic %",
+      inverse: false,
+      gamma: 0.50,
+      opacity: 0.85,
+      invert: false,
+      color: "teal",
+    },
+  ];
+
+    // process dimensions
+    dimensions.forEach(function (dim) {
+      // get range
+      var range = d3.extent(zipcodes.features, function (d) {
+        return d.properties[dim.prop];
+      });
+      dim.range = range;
+
+      // get values
+      var values = zipcodes.features
+          .map(function (d) { return d.properties[dim.prop]; })
+          .sort(function (a, b) { return a - b; });
+
+      // get distribution
+      if (!dim.dist) {
+        var dist = d3.range(bins).map(function (d) {
+          return d3.quantile(values, d / bins);
+        });
+        dim.dist = dist;
+      }
+
+      // generate filters
+      var layerFilters = [];
+      for (var p = 0; p < bins; p++) {
+        var filters;
+        if (p < bins - 1) {
+          filters = [ 'all',
+            [ '>=', dim.prop, dim.dist[p] ],
+            [ '<', dim.prop, dim.dist[p + 1] ],
+          ];
+        }
+        else {
+          filters = [ 'all',
+            [ '>=', dim.prop, dim.dist[p] ],
+          ];
+        }
+        layerFilters.push(filters);
+      }
+      dim.filters = layerFilters;
+    });
+
+
+    function calcGamma(val, gamma) {
+      return Math.pow(val, (1 / gamma));
     }
 
-    var layers = [];
-    layerStack0.forEach(function(d) { layers.push(d) })
-    dataLayers.forEach(function(d)   { layers.push(d) })
-    layerStack2.forEach(function(d) { layers.push(d) })
 
-    // init the map
+    function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
+      console.log("container", container);
+      console.log("prop", prop);
+      console.log("color", color);
+      console.log("gamma", gamma);
+      console.log("opacity", opacity);
+      console.log("levels", levels);
+      console.log("filters", filters);
+      console.log("title", title);
+      console.log("dims", dims);
 
-    var map = new mapboxgl.Map({
+      var dataLayers = [];
+
+      for (var p = 0; p < bins; p++) {
+        // add the layer and filters to the dataLayers array
+        dataLayers.push({
+          id: "dataLayer" + p,
+          interactive: true,
+          type: 'fill',
+          source: 'zipcodes',
+          paint: {
+            'fill-color': color,
+            'fill-opacity': calcGamma((p + 1) / bins, gamma) * opacity,
+          },
+          filter: filters[p],
+        });
+      }
+
+      var layers = [];
+      layerStack0.forEach(function (d) { layers.push(d); });
+      dataLayers.forEach(function (d) { layers.push(d); });
+      layerStack2.forEach(function (d) { layers.push(d); });
+
+      // init the map
+      var map = new mapboxgl.Map({
         container: container,
-        maxZoom: 14, //13 
+        maxZoom: 14, // 13
         minZoom: 4,
         zoom: 6,
         center: [-119, 37],
         style: 'mapbox://styles/mapbox/bright-v8',
-        hash: false
-    });
-
-
-    // add controls to the map, and event handler
-    map.addControl(new mapboxgl.Navigation());
-    d3.selectAll(".mapboxgl-ctrl-compass").on("click", function() {
-      d3.select("#tiltSlider").property("value", 0)
-    })
-
-    // load the counties and zipcode layers at style.load event
-    map.on("style.load", function() {
-
-      // add the two data sources before adding the layers
-      // note: extreme performance penalty if adding the data source repeatedly for each layer
-      map.addSource("counties", {
-          "type": "geojson",
-          "data": counties
+        hash: false,
       });
 
-      map.addSource("zipcodes", {
-          "type": "geojson",
-          "data": zipcodes
+      // add controls to the map, and event handler
+      map.addControl(new mapboxgl.Navigation());
+      d3.selectAll(".mapboxgl-ctrl-compass").on("click", function () {
+        d3.select("#tiltSlider").property("value", 0);
       });
 
-      // add the zip code layers
-      layers.forEach(function(d, i) {
-        map.addLayer(d)
-      })
+      // load the counties and zipcode layers at style.load event
+      map.on("style.load", function () {
+        // add the two data sources before adding the layers
+        // note: extreme performance penalty if adding the data source repeatedly for each layer
+        map.addSource("counties", {
+          type: "geojson",
+          data: counties,
+        });
 
-    })
+        map.addSource("zipcodes", {
+          type: "geojson",
+          data: zipcodes,
+        });
 
+        // add the zip code layers
+        layers.forEach(function (d) {
+          map.addLayer(d);
+        });
+      });
 
-
-    var cursorTrackerDiv = d3.select("#" + container)
-      .append("div")
-        .attr("id", container + "TrackerDiv")
-        .attr("class", "trackerDiv")
-        .style("position", "absolute")
-        .style("top", "0px")
-        .style("left", "0px");
-
-    var cursorTracker = cursorTrackerDiv
-      .append("div")
-        .attr("id", container + "Tracker")
-        .attr("class", "tracker")
-        .style("position", "absolute")
-        .style("top", "-40px")
-        .style("left", "-40px")
-        .style("width", "7px")
-        .style("height", "7px")
-        .style("background-color", "black")
-        .style("border-radius", "50%")
-
-
-
-
-    // remove zip code area border when zoomed out
-    map.on('zoom', function() {
-        var layer = map.getLayer("zipcodesLine");
-        var zoom = map.getZoom();
-        if (zoom < 9) map.setPaintProperty("zipcodesLine", "line-width", 0)
-        else map.setPaintProperty("zipcodesLine", "line-width", 0.5);
-    });
-
-    // update the overlay
-    map.on('mousemove', function(e) { mouseMove(container, e) }) 
-
-    // create title elem above the map
-    var titleDiv = d3.select("#" + container)
-      .append("div")
-        .attr("id", container + "Title")
-        .attr("class", "headerBox")
-
-    titleDiv.append("h2")
-        .attr("class", "header")
-        .text(title)
-
-
-    // if dimensions array is passed in, then select elem to allow choice of data series
-    if (dims) {
-      var dataSelectDiv = d3.select("#" + container)
+      var cursorTrackerDiv = d3.select("#" + container)
         .append("div")
-          .attr("id", container + "DataSelect")
-          .attr("class", "dataSelect")
+          .attr("id", container + "TrackerDiv")
+          .attr("class", "trackerDiv")
+          .style("position", "absolute")
+          .style("top", "0px")
+          .style("left", "0px");
 
-      dataSelectDiv.append("label")
-          .text("Select data series")
+      cursorTrackerDiv
+        .append("div")
+          .attr("id", container + "Tracker")
+          .attr("class", "tracker")
+          .style("position", "absolute")
+          .style("top", "-40px")
+          .style("left", "-40px")
+          .style("width", "7px")
+          .style("height", "7px")
+          .style("background-color", "black")
+          .style("border-radius", "50%");
 
-      dataSelectDiv.append("select")
-          .on("change", function() {
-            var elem = d3.select(this)
-            var value = elem.property("value")
-            console.log("value", value)
-            dims.slice(1).some(function(d, i) {
-              if (d.prop == value) {
-                console.log("value", value, "i", i)
-                setDimension(i + 1);
-                //setDimension(i);
-                return true;
-              }
+      // remove zip code area border when zoomed out
+      map.on('zoom', function () {
+        var zoom = map.getZoom();
+        if (zoom < 9) map.setPaintProperty("zipcodesLine", "line-width", 0);
+        else map.setPaintProperty("zipcodesLine", "line-width", 0.5);
+      });
+
+      // update the overlay
+      map.on('mousemove', function (e) { mouseMove(container, e); });
+
+      // create title elem above the map
+      var titleDiv = d3.select("#" + container)
+        .append("div")
+          .attr("id", container + "Title")
+          .attr("class", "headerBox");
+
+      titleDiv.append("h2")
+          .attr("class", "header")
+          .text(title);
+
+      // if dimensions array is passed in, then select elem to allow choice of data series
+      if (dims) {
+        var dataSelectDiv = d3.select("#" + container)
+          .append("div")
+            .attr("id", container + "DataSelect")
+            .attr("class", "dataSelect");
+
+        dataSelectDiv.append("label")
+            .text("Select data series");
+
+        dataSelectDiv.append("select")
+            .on("change", function () {
+              var elem = d3.select(this);
+              var value = elem.property("value");
+              dims.slice(1).some(function (d, i) {
+                if (d.prop === value) {
+                  setDimension(i + 1);
+                  return true;
+                }
+                return false;
+              });
             })
-          })
-          .selectAll("option")
-          .data(dims.slice(1))
-        .enter().append("option")
-          .attr("value", function(d) { return d.prop })
-          .text(function(d) { return d.title })
+            .selectAll("option")
+            .data(dims.slice(1))
+          .enter().append("option")
+            .attr("value", function (d) { return d.prop; })
+            .text(function (d) { return d.title; });
 
-      var rangeDiv = dataSelectDiv.append("div")
-          .style("display", "none")
+        var rangeDiv = dataSelectDiv.append("div")
+            .style("display", "none");
 
-      var span = rangeDiv.append("span")
+        var span = rangeDiv.append("span")
+            .style("display", "block")
+            .style("margin-top", "20px");
+
+        span.append("label")
+            .style("display", "block")
+            .text("Contrast");
+
+        span.append("input")
+            .attr("id", "contrastRange")
+            .attr("min", 0)
+            .attr("max", 100)
+            .attr("step", 1)
+            .attr("value", 100)
+            .attr("type", "range")
+            .style("width", "200px")
+            .on("change", function () { rangeContrastEvent.call(this); })
+            .on("input", function () { rangeContrastEvent.call(this); });
+
+        span.append("p")
+            .attr("id", "contrastText")
+            .style("margin-top", "0px")
+            .text("value");
+
+        span = rangeDiv.append("span")
+            .style("display", "block")
+            .style("margin-top", "20px");
+
+        span.append("label")
+            .style("display", "block")
+            .text("Opacity");
+
+        span.append("input")
+            .attr("id", "opacityRange")
+            .attr("min", 0)
+            .attr("max", 100)
+            .attr("step", 1)
+            .attr("value", 100)
+            .attr("type", "range")
+            .style("width", "200px")
+            .on("change", function () { rangeOpacityEvent.call(this); })
+            .on("input", function () { rangeOpacityEvent.call(this); });
+
+        span.append("p")
+            .attr("id", "opacityText")
+            .style("margin-top", "0px")
+            .text("value");
+
+
+        dataSelectDiv.append("label")
           .style("display", "block")
           .style("margin-top", "20px")
+          .text("Quick move");
 
-      span.append("label")
-          .style("display", "block")
-          .text("Contrast")
+        var flyToSelect = dataSelectDiv.append("select")
+            .style("margin-bottom", "10px")
+            .on("change", function () {
+              var elem = d3.select(this);
+              var value = elem.property("value");
+              flyTo(targets[+value]);
+            });
 
-      span.append("input")
-          .attr("id", "contrastRange")
-          .attr("min", 0)
-          .attr("max", 100)
-          .attr("step", 1)
-          .attr("value", 100)
-          .attr("type", "range")
-          .style("width", "200px")
-          .on("change", function() { rangeContrastEvent.call(this) })
-          .on("input", function() { rangeContrastEvent.call(this) })
+        flyToSelect.selectAll("option")
+            .data(targets)
+          .enter().append("option")
+            .property("value", function (d, i) { return i; })
+            .text(function (d) { return d.name; });
+      }
 
-      span.append("p")
-          .attr("id", "contrastText")
-          .style("margin-top", "0px")
-          .text("value");
+      function rangeContrastEvent() {
+        var elem = d3.select(this);
+        var value = elem.property("value");
+        d3.select("#contrastText").text(fmt(value));
 
-      span = rangeDiv.append("span")
-          .style("display", "block")
-          .style("margin-top", "20px")
+        var dim = getDimension();
+        setDimension(dim, value / 100);
+      }
 
-      span.append("label")
-          .style("display", "block")
-          .text("Opacity");
+      function rangeOpacityEvent() {
+        var elem = d3.select(this);
+        var value = elem.property("value");
+        d3.select("#opacityText").text(value);
 
-      span.append("input")
-          .attr("id", "opacityRange")
-          .attr("min", 0)
-          .attr("max", 100)
-          .attr("step", 1)
-          .attr("value", 100)
-          .attr("type", "range")
-          .style("width", "200px")
-          .on("change", function() { rangeOpacityEvent.call(this) })
-          .on("input", function() { rangeOpacityEvent.call(this) })
+        var dim = getDimension();
+        var d = dimensions[dim];
+        d.opacity = value / 100;
 
-      span.append("p")
-          .attr("id", "opacityText")
-          .style("margin-top", "0px")
-          .text("value");
+        setDimension(dim, d.gamma, d.opacity, d.color);
+      }
 
-
-      dataSelectDiv.append("label")
-        .style("display", "block")
-        .style("margin-top", "20px")
-        .text("Quick move")
-
-      var flyToSelect = dataSelectDiv.append("select")
-          .style("margin-bottom", "10px")
-          .on("change", function() {
-            var elem = d3.select(this);
-            var value = elem.property("value");
-            //console.log("----------------------", value)
-            flyTo(targets[+value]);
-          });
-
-      var options = flyToSelect.selectAll("option")
-          .data(targets)
-        .enter().append("option")
-          .property("value", function(d, i) { return i; })
-          .text(function(d) { return d.name; })
-
-
+      // return the map to caller
+      return map;
     }
 
 
-
-    function rangeContrastEvent() {
-      var elem = d3.select(this)
-      var value = elem.property("value")
-      //console.log("value", value)
-      d3.select("#contrastText").text(fmt(value));
-
-      var dim = getDimension();
-      setDimension(dim, value / 100)
+    function fly(idx) {
+      flyTo(targets[idx]);
     }
 
-    function rangeOpacityEvent() {
-      var elem = d3.select(this)
-      var value = elem.property("value")
-      //console.log("value", value)
-      d3.select("#opacityText").text(value);
 
-      //console.log("--------", JSON.stringify(dimensions, null, 1))
-      var dim = getDimension();
-      //console.log("dim", dim)
-      var d = dimensions[dim];
-      //console.log("d", d)
-      d.opacity = value / 100;
-
-
-      setDimension(dim, d.gamma, d.opacity, d.color)
-    }
-
-/*
-    // create legend panel
-    var legendDiv = d3.select("#" + container)
-      .append("div")
-        .attr("id", container + "Legend")
-        .attr("class", "legendBox");
-
-    var svg = legendDiv.append("svg")
-        .attr("width", 100)
-        .attr("height", 400)
-        .style("border", "1px solid lightgray")
-      .append("g")
-        .style("transform", "translate(10 10")
-
-    svg.append("rect")
-        .attr("x", 10)
-        .attr("y", 10)
-        .attr("width", 50)
-        .attr("height", 100)
-        .style("fill", "blue")
-*/
-
-
-    // return the map to caller
-    return map;
-  }
-
-
-
-
-  function fly(idx) {
-    flyTo(targets[idx]);
-  }
-
-  function flyTo(target) {
-
+    function flyTo(target) {
       map.flyTo({
         // These options control the ending camera position: centered at
         // the target, at zoom level 9, and north up.
@@ -838,240 +739,232 @@ function mapBoxInit() {
 
         // This can be any easing function: it takes a number between
         // 0 and 1 and returns another number between 0 and 1.
-        easing: function (t) {
-            return t;
-        }
-    });
-  }
+        easing: function (t) { return t; },
+      });
+    }
 
-window.fly = fly;
+    // for debug...
+    // TODO: remove
+    window.fly = fly;
 
+    // init first map
+    var d = dimensions[0];
+    map = initMap("map", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
 
-  // init first map
-  var d = dimensions[0];
-  map = initMap("map", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
-  //window.firstMap = map;
-  
-  // init second map
-  var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(0)
-  var d = dimensions[1];
-  var map2 = initMap("map2", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList) 
-  //window.secondMap = map;
-  d3.select("#contrastRange").property("value", d.gamma * 100);
-  d3.select("#contrastText").text(fmt(d.gamma * 100));
-  d3.select("#opacityRange").property("value", d.opacity * 100);
-  d3.select("#opacityText").text(fmt(d.opacity * 100));
+    // for debug...
+    // TODO: remove
+    // window.firstMap = map;
 
+    // init second map
+    var dimensionList = dimensions.map(function (d) { return { prop: d.prop, title: d.title }; }).slice(0);
+    d = dimensions[1];
+    var map2 = initMap("map2", d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList);
 
-  var currDim = 0;
-  var setDimension = function(dim, g, o, c) {
-    //console.log("dim", dim)
-    var d = dimensions[dim];
-    console.log("d----------", d)
-    console.log("dimensions", dimensions)
-    if (g != undefined) d.gamma = +g;
-    if (o != undefined) d.opacity = +o
-    if (c != undefined) d.color = c;
-    //console.log("dataSeries:", d.prop, "gamma:", d.gamma, "opacity:", d.opacity, "color:", d.color)
-    //console.log("--", map2.getLayer("dataLayer3"))
-    //console.log("d", d);
-    currDim = dim;
-
-    d3.range(bins).forEach(function(p) {
-      var layerId = "dataLayer" + p;
-      map2.setFilter(layerId, d.filters[p])
-      map2.setPaintProperty(layerId, "fill-color", d.color);
-      var gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins; 
-      map2.setPaintProperty(layerId, "fill-opacity", calcGamma(gammaArg, d.gamma) * d.opacity);
-    })
-
-    d3.select("#map2Title > .header").text(d.title)
+    // for debug...
+    // TODO: remove
+    // window.secondMap = map;
 
     d3.select("#contrastRange").property("value", d.gamma * 100);
     d3.select("#contrastText").text(fmt(d.gamma * 100));
     d3.select("#opacityRange").property("value", d.opacity * 100);
     d3.select("#opacityText").text(fmt(d.opacity * 100));
 
-  }
-  //setDimension(1);
-  window.setDimension = setDimension;
+    var currDim = 0;
+    var setDimension = function (dim, g, o, c) {
+      var d = dimensions[dim];
+      if (g !== undefined) d.gamma = +g;
+      if (o !== undefined) d.opacity = +o;
+      if (c !== undefined) d.color = c;
+      currDim = dim;
 
-  function getDimension() {
-    return currDim;
-  }
+      d3.range(bins).forEach(function (p) {
+        var layerId = "dataLayer" + p;
+        map2.setFilter(layerId, d.filters[p]);
+        map2.setPaintProperty(layerId, "fill-color", d.color);
+        var gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins;
+        map2.setPaintProperty(layerId, "fill-opacity", calcGamma(gammaArg, d.gamma) * d.opacity);
+      });
 
+      d3.select("#map2Title > .header").text(d.title);
+      d3.select("#contrastRange").property("value", d.gamma * 100);
+      d3.select("#contrastText").text(fmt(d.gamma * 100));
+      d3.select("#opacityRange").property("value", d.opacity * 100);
+      d3.select("#opacityText").text(fmt(d.opacity * 100));
+    };
 
-/*
-var map = {};
-map.on = function() {}
-var map2 = {};
-map2.on = function() {}
-*/
-  var disable = false;
-  map.on("move", function() {
-    if (!disable) {
-      var center = map.getCenter();
-      var zoom = map.getZoom();
-      var pitch = map.getPitch();
-      var bearing = map.getBearing(); 
-      //console.log(center, zoom, pitch, bearing)
+    // for debug...
+    // TODO: remove
+    window.setDimension = setDimension;
 
-      disable = true;
-      map2.setCenter(center);
-      map2.setZoom(zoom);
-      map2.setPitch(pitch);
-      map2.setBearing(bearing);
-      disable = false;     
+    function getDimension() {
+      return currDim;
     }
-  })
 
+    var disable = false;
+    map.on("move", function () {
+      if (!disable) {
+        var center = map.getCenter();
+        var zoom = map.getZoom();
+        var pitch = map.getPitch();
+        var bearing = map.getBearing();
 
-  map2.on("move", function() {
-    if (!disable) {
-      var center = map2.getCenter();
-      var zoom = map2.getZoom();
-      var pitch = map2.getPitch();
-      var bearing = map2.getBearing();
-
-      disable = true;
-      map.setCenter(center);
-      map.setZoom(zoom);
-      map.setPitch(pitch);
-      map.setBearing(bearing);
-      disable = false;     
-    }
-  })
-
-
-
-    map.on("drag", function(e) {
-      console.log("drag -----------e", e)
-    })
-    map.on("dragend", function(e) {
-      console.log("dragend -----------e", e)
-    })
-    map.on("dragstart", function(e) {
-      console.log("dragstart -----------e", e)
-    })
-
-  // map pitch handlers
-  d3.select("#tiltSlider").on("change", function() { tiltSlider.call(this) });
-  d3.select("#tiltSlider").on("input",  function() { tiltSlider.call(this) });
-  function tiltSlider() {
-    var elem = d3.select(this)
-    var value = +elem.property("value");
-    map.setPitch(value)
-  }
-
-
-  // manages the side panel
-  function manageSidePanel(data) {
-    var controls = d3.select("#controls");
-    
-    // remove current elements
-    controls.selectAll("p").remove();
-    
-    // add new p elements
-    controls.selectAll("p")
-        .data(data)
-      .enter().append("p")
-        .html(function(d) { return d; })
-
-    setOverlayPos();
-  }
-
-
-  // establish handler for the "how to use" div
-  d3.select("#howToUse").on("click", function() {
-    var state = d3.select("#instructions").style("display");
-    if (state == "none") state = "block";
-    else state = "none";
-    d3.select("#instructions").style("display", state);
-    d3.select(this).text(function() {
-      return state == "none" ? "How to use..." : "How to use";
-    })
-
-    setOverlayPos();
-  })
-
-
-  function mouseMove (container, e) {
-    var fmtPct = d3.format(",.1%");
-    var fmtInt = d3.format(",d");
-    var fmtFloat = d3.format(".1f");
-
-    //console.log("container", container);
-    var t = container == "map" ? { tracker: "map2", noTracker: "map" } : { tracker: "map", noTracker: "map2" };
-    d3.select("#" + t.tracker + "Tracker").style("left", e.point.x + "px").style("top", e.point.y + "px");
-    d3.select("#" + t.noTracker + "Tracker").style("left", "-40px").style("top", "-40px")    
-    
-    map.featuresAt(e.point, {radius: 5}, function (error, features) {
-      if (error) throw error;
-      if (features.length == 0) return;
-
-      // separate county and zip code entries in the features array
-      var countyInfo = features.filter(function(d) { if (d.properties.ALAND != undefined) return true });
-      var zipInfo = features.filter(function(d) { if (d.properties.City != undefined) return true });
-
-      // clear properties
-      var item = {
-        County: "",
-        ZipCode: "",
-        Places: "",
-        FTAFTPS100: "",
-        City: "",
-        povrate: "",
-        Pop15Plus: "",
-        IncK: "",
-        Black: "",
-        Hisp: "",
-        Asian: "",
-        White: "",
-      };
-
-      // obtain county name from first item in county array
-      if (countyInfo.length > 0) {
-        item.County = countyInfo[0].properties.NAME
+        disable = true;
+        map2.setCenter(center);
+        map2.setZoom(zoom);
+        map2.setPitch(pitch);
+        map2.setBearing(bearing);
+        disable = false;
       }
-
-      // obtain zip code info from first item in zip code array
-      if (zipInfo.length > 0) {
-        item.ZipCode =    zipInfo[0].properties.zip;
-        item.Places =     zipInfo[0].properties.Places;
-        item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
-        item.City =       zipInfo[0].properties.City;
-        item.povrate =    zipInfo[0].properties.povrate;
-        item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
-        item.IncK =       zipInfo[0].properties.IncK;
-        item.Black =      zipInfo[0].properties.Black;
-        item.Hisp =       zipInfo[0].properties.Hisp;
-        item.Asian =      zipInfo[0].properties.Asian;
-        item.White =      zipInfo[0].properties.WhiteNH;
-      }
-
-      // set the text in the overlay panel
-      var text = [
-        "Zip Code: <b>" + item.ZipCode + "</b>",
-        "Place: <b>" + item.Places + "</b>",
-        "County: <b>" + item.County + "</b>",
-        "Suspensions: <b>" + fmtPct(item.FTAFTPS100 / 100) + "</b>",
-        "Poverty Rate: <b>" + fmtPct(item.povrate / 100) + "</b>",
-        "Population 15y+: <b>" + fmtInt(item.Pop15Plus) + "</b>",
-        "Avg Income: <b>" + fmtFloat("" + item.IncK) + "K</b>",
-        "Black: <b>" + fmtPct("" + item.Black / 100) + "</b>",
-        "Hispanic: <b>" + fmtPct("" + item.Hisp / 100) + "</b>",
-        "Asian: <b>" + fmtPct("" + item.Asian / 100) + "</b>",
-        "White: <b>" + fmtPct("" + item.White / 100) + "</b>"
-      ];
-
-      // update panel
-      manageSidePanel(text);
     });
-  };
+
+    map2.on("move", function () {
+      if (!disable) {
+        var center = map2.getCenter();
+        var zoom = map2.getZoom();
+        var pitch = map2.getPitch();
+        var bearing = map2.getBearing();
+
+        disable = true;
+        map.setCenter(center);
+        map.setZoom(zoom);
+        map.setPitch(pitch);
+        map.setBearing(bearing);
+        disable = false;
+      }
+    });
+
+    // TODO: remove drag-related handlers here
+    map.on("drag", function (e) {
+      console.log("drag", e);
+    });
+    map.on("dragend", function (e) {
+      console.log("dragend", e);
+    });
+    map.on("dragstart", function (e) {
+      console.log("dragstart", e);
+    });
+
+    // map pitch handlers
+    d3.select("#tiltSlider").on("change", function () { tiltSlider.call(this); });
+    d3.select("#tiltSlider").on("input", function () { tiltSlider.call(this); });
+    function tiltSlider() {
+      var elem = d3.select(this);
+      var value = +elem.property("value");
+      map.setPitch(value);
+    }
 
 
+    // manages the side panel
+    function manageSidePanel(data) {
+      var controls = d3.select("#controls");
 
-}
+      // remove current elements
+      controls.selectAll("p").remove();
 
+      // add new p elements
+      controls.selectAll("p")
+          .data(data)
+        .enter().append("p")
+          .html(function (d) { return d; });
+
+      setOverlayPos();
+    }
+
+    // establish handler for the "how to use" div
+    d3.select("#howToUse").on("click", function () {
+      var state = d3.select("#instructions").style("display");
+      if (state === "none") state = "block";
+      else state = "none";
+      d3.select("#instructions").style("display", state);
+      d3.select(this).text(function () {
+        return state === "none" ? "How to use..." : "How to use";
+      });
+
+      setOverlayPos();
+    });
+
+
+    function mouseMove(container, e) {
+      var fmtPct = d3.format(",.1%");
+      var fmtInt = d3.format(",d");
+      var fmtFloat = d3.format(".1f");
+
+      var t = container === "map" ? { tracker: "map2", noTracker: "map" } : { tracker: "map", noTracker: "map2" };
+      d3.select("#" + t.tracker + "Tracker").style("left", e.point.x + "px").style("top", e.point.y + "px");
+      d3.select("#" + t.noTracker + "Tracker").style("left", "-40px").style("top", "-40px");
+
+      map.featuresAt(e.point, { radius: 5 }, function (error, features) {
+        if (error) throw error;
+        if (features.length === 0) return;
+
+        // separate county and zip code entries in the features array
+        var countyInfo = features.filter(function (d) {
+          if (d.properties.ALAND !== undefined) {
+            return true;
+          }
+          return false;
+        });
+        var zipInfo = features.filter(function (d) {
+          if (d.properties.City !== undefined) {
+            return true;
+          }
+          return false;
+        });
+
+        // clear properties
+        var item = {
+          County: "",
+          ZipCode: "",
+          Places: "",
+          FTAFTPS100: "",
+          City: "",
+          povrate: "",
+          Pop15Plus: "",
+          IncK: "",
+          Black: "",
+          Hisp: "",
+          Asian: "",
+          White: "",
+        };
+
+        // obtain county name from first item in county array
+        if (countyInfo.length > 0) {
+          item.County = countyInfo[0].properties.NAME;
+        }
+
+        // obtain zip code info from first item in zip code array
+        if (zipInfo.length > 0) {
+          item.ZipCode =    zipInfo[0].properties.zip;
+          item.Places =     zipInfo[0].properties.Places;
+          item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
+          item.City =       zipInfo[0].properties.City;
+          item.povrate =    zipInfo[0].properties.povrate;
+          item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
+          item.IncK =       zipInfo[0].properties.IncK;
+          item.Black =      zipInfo[0].properties.Black;
+          item.Hisp =       zipInfo[0].properties.Hisp;
+          item.Asian =      zipInfo[0].properties.Asian;
+          item.White =      zipInfo[0].properties.WhiteNH;
+        }
+
+        // set the text in the overlay panel
+        var text = [
+          "Zip Code: <b>" + item.ZipCode + "</b>",
+          "Place: <b>" + item.Places + "</b>",
+          "County: <b>" + item.County + "</b>",
+          "Suspensions: <b>" + fmtPct(item.FTAFTPS100 / 100) + "</b>",
+          "Poverty Rate: <b>" + fmtPct(item.povrate / 100) + "</b>",
+          "Population 15y+: <b>" + fmtInt(item.Pop15Plus) + "</b>",
+          "Avg Income: <b>" + fmtFloat("" + item.IncK) + "K</b>",
+          "Black: <b>" + fmtPct("" + (item.Black / 100)) + "</b>",
+          "Hispanic: <b>" + fmtPct("" + (item.Hisp / 100)) + "</b>",
+          "Asian: <b>" + fmtPct("" + (item.Asian / 100)) + "</b>",
+          "White: <b>" + fmtPct("" + (item.White / 100)) + "</b>",
+        ];
+
+        // update panel
+        manageSidePanel(text);
+      });
+    }
+  }
 </script>
-
