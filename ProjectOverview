@@ -1,0 +1,44 @@
+- Mapbox GL
+  - Excellent API, code samples
+
+- Layout
+  - Two identical Mapbox GL map instances
+  - Map event tracking (pan/zoom/rotate/tilt) (row 1300)
+
+- Google Analytics
+
+- Input files
+  - Zip code meta data (tsv)
+  - DL suspension data (tsv)
+  - County boundaries (topojson)
+  - Zip code boundaries (topojson)
+
+- Layer stack
+  - County (area)
+  - County (line)
+  - Zip codes (line)
+  - 10 bins, 10% each (each with filter and opacity setting)
+
+- Data dimensions
+  - DL suspension rate
+  - Poverty rate
+  - Income level
+  - Black %
+  - Latino %
+  - Asian %
+  - White %
+
+- Contrast
+  - gamma formula (row 650)
+  - Math.pow(val, (1 / gamma))
+
+- Event handling
+  - FeaturesAt (row 1400)
+
+- Fly to
+  - (row 1000)
+
+- Legend
+  - 10% percent buckets using d3.quantile
+  - thresholds
+  - tracking dot

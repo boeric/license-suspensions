@@ -1063,18 +1063,12 @@ function mapBoxInit() {
   var currDim = 1;
   var setDimension = function(dim, g, o, c) {
     var d = dimensions[dim];
-    //console.log("dim", dim)
-    //console.log("d", d)
-    //console.log("dimensions", dimensions)
     if (g != undefined) {
       d.gamma = +g;
       currGamma = d.gamma;
     }
     if (o != undefined) d.opacity = +o
     if (c != undefined) d.color = c;
-    //console.log("dataSeries:", d.prop, "gamma:", d.gamma, "opacity:", d.opacity, "color:", d.color)
-    //console.log("--", map2.getLayer("dataLayer3"))
-    //console.log("d", d);
     currDim = dim;
     d.gamma = currGamma;
 
@@ -1096,9 +1090,6 @@ function mapBoxInit() {
     // update legend
     updateLegend("map2", d)
   }
-
-  // attach to window for debugging
-  window.setDimension = setDimension;
 
 
   function getDimension() {
@@ -1304,8 +1295,6 @@ function mapBoxInit() {
   // init percentile markers
   setPercentileMarker("map", -1, false);
   setPercentileMarker("map2", -1, false);
-
-
 
 
   var disable = false;
