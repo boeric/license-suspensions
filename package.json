@@ -1,0 +1,26 @@
+{
+  "name": "license-suspensions",
+  "version": "1.0.0",
+  "description": "CA Driver License Suspensions",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-server": "node_modules/http-server/bin/http-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boeric/license-suspensions.git"
+  },
+  "keywords": [
+    "mapbox"
+  ],
+  "author": "Bo Ericsson <bo@boe.net> (http://www.boe.net)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/boeric/license-suspensions/issues"
+  },
+  "homepage": "https://github.com/boeric/license-suspensions#readme",
+  "dependencies": {
+    "http-server": "^0.12.3"
+  }
+}
