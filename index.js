@@ -7,6 +7,8 @@
   no-param-reassign,
   no-restricted-globals,
   no-alert,
+  no-plusplus,
+  no-restricted-properties,
 */
 /* global d3, mapboxgl, topojson */
 
@@ -189,191 +191,190 @@ window.onresize = function () { setWindowSize(); };
 setWindowSize();
 setOverlayPos();
 
-
-
 function mapBoxInit() {
   d3.select('#message').text('Loading vector maps...');
 
   // Mapbox access token
   mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
 
-  // define map layers
-  var layerStack0 =  [
+  // Define map layers
+  const layerStack0 =  [
     {
-      'id': 'countiesArea',
-      'interactive': true,
-      'source': 'counties',
-      'type': 'fill',
-      'paint': {
+      id: 'countiesArea',
+      interactive: true,
+      source: 'counties',
+      type: 'fill',
+      paint: {
         'fill-color': 'white',
-        'fill-opacity': 0.1//0.01
-      }
+        'fill-opacity': 0.1, // 0.01
+      },
     },
     {
-      'id': 'countiesLine',
-      'source': 'counties',
-      'type': 'line',
-      'paint': {
+      id: 'countiesLine',
+      source: 'counties',
+      type: 'line',
+      paint: {
         'line-color': '#999',
         'line-width': 1,
-      }
-    }
+      },
+    },
   ];
 
-  var layerStack2 = [
+  const layerStack2 = [
     {
-      'id': 'zipcodesLine',
-      'source': 'zipcodes',
-      'type': 'line',
-      'paint': {
+      id: 'zipcodesLine',
+      source: 'zipcodes',
+      type: 'line',
+      paint: {
         'line-color': 'darkred',
-        'line-width': 0 //0.5,
-      }
-    }
+        'line-width': 0, // 0.5,
+      },
+    },
   ];
 
   // dataset dimensions
-  //var bins = 10;
-  var dimensions = [
-      {
-        prop: 'FTAFTPS100',
-        preUnit: '',
-        postUnit: '',
-        fmt: fmtP,
-        divide: 100,
-        title: 'DL. Suspension Rate',
-        inverse: false,
-        gamma: 0.15, //0.40, //0.70,
-        opacity: 0.75, //0.85,
-        invert: false,
-        color: 'darkred'//,
-        //dist: d3.range(bins)
-      },
-      {
-        prop: 'povrate',
-        preUnit: '',
-        postUnit: '',
-        fmt: fmtP,
-        divide: 100,
-        title: 'Poverty Rate',
-        inverse: false,
-        gamma: 0.15, //0.50,
-        opacity: 0.80,
-        invert: false,
-        color: 'mediumblue'
-      },
-/*
-      {
-        prop: 'IncK',
-        preUnit: '$',
-        postUnit: 'K',
-        fmt: fmt,
-        divide: 1,
-        title: 'Average Income (inverted)',
-        inverse: true,
-        gamma: 0.18, //0.50,
-        opacity: 0.80,
-        invert: false,
-        color: 'darkgreen'
-      },
-*/
-      {
-        prop: 'Black',
-        preUnit: '',
-        postUnit: '',
-        fmt: fmtP,
-        divide: 100,
-        title: 'African American %',
-        inverse: false,
-        gamma: 0.15, //.50,
-        opacity: 0.80,
-        invert: false,
-        color: 'purple'
-      },
-      {
-        prop: 'Hisp',
-        preUnit: '',
-        postUnit: '',
-        fmt: fmtP,
-        divide: 100,
-        title: 'Latino %',
-        inverse: false,
-        gamma: 0.15, //0.50,
-        opacity: 0.80,
-        invert: false,
-        color: 'teal'
-      },
-      {
-        prop: 'Asian',
-        preUnit: '',
-        postUnit: '',
-        fmt: fmtP,
-        divide: 100,
-        title: 'Asian %',
-        inverse: false,
-        gamma: 0.15, //0.50,
-        opacity: 0.80,
-        invert: false,
-        color: 'indianred'
-      },
-      {
-        prop: 'WhiteNH',
-        preUnit: '',
-        postUnit: '',
-        fmt: fmtP,
-        divide: 100,
-        title: 'White (Non-Latino) %',
-        inverse: false,
-        gamma: 0.15, //0.50,
-        opacity: 0.80,
-        invert: false,
-        color: 'dimgray'
-      }
-    ];
+  // var bins = 10;
+  const dimensions = [
+    {
+      prop: 'FTAFTPS100',
+      preUnit: '',
+      postUnit: '',
+      fmt: fmtP,
+      divide: 100,
+      title: 'DL. Suspension Rate',
+      inverse: false,
+      gamma: 0.15, // 0.40, // 0.70,
+      opacity: 0.75, // 0.85,
+      invert: false,
+      color: 'darkred'
+      // dist: d3.range(bins)
+    },
+    {
+      prop: 'povrate',
+      preUnit: '',
+      postUnit: '',
+      fmt: fmtP,
+      divide: 100,
+      title: 'Poverty Rate',
+      inverse: false,
+      gamma: 0.15, // 0.50,
+      opacity: 0.80,
+      invert: false,
+      color: 'mediumblue',
+    },
+    /*
+    {
+      prop: 'IncK',
+      preUnit: '$',
+      postUnit: 'K',
+      fmt: fmt,
+      divide: 1,
+      title: 'Average Income (inverted)',
+      inverse: true,
+      gamma: 0.18, //0.50,
+      opacity: 0.80,
+      invert: false,
+      color: 'darkgreen',
+    },
+    */
+    {
+      prop: 'Black',
+      preUnit: '',
+      postUnit: '',
+      fmt: fmtP,
+      divide: 100,
+      title: 'African American %',
+      inverse: false,
+      gamma: 0.15, // .50,
+      opacity: 0.80,
+      invert: false,
+      color: 'purple',
+    },
+    {
+      prop: 'Hisp',
+      preUnit: '',
+      postUnit: '',
+      fmt: fmtP,
+      divide: 100,
+      title: 'Latino %',
+      inverse: false,
+      gamma: 0.15, // 0.50,
+      opacity: 0.80,
+      invert: false,
+      color: 'teal',
+    },
+    {
+      prop: 'Asian',
+      preUnit: '',
+      postUnit: '',
+      fmt: fmtP,
+      divide: 100,
+      title: 'Asian %',
+      inverse: false,
+      gamma: 0.15, // 0.50,
+      opacity: 0.80,
+      invert: false,
+      color: 'indianred',
+    },
+    {
+      prop: 'WhiteNH',
+      preUnit: '',
+      postUnit: '',
+      fmt: fmtP,
+      divide: 100,
+      title: 'White (Non-Latino) %',
+      inverse: false,
+      gamma: 0.15, // 0.50,
+      opacity: 0.80,
+      invert: false,
+      color: 'dimgray',
+    },
+  ];
 
   // Process dimensions
-  dimensions.forEach(function(dim) {
-
+  dimensions.forEach(function (dim) {
     // Get range
-    var range = d3.extent(zipcodes.features, function(d, i) {
+    const range = d3.extent(zipcodes.features, function (d) {
       return d.properties[dim.prop];
-    })
+    });
     dim.range = range;
     // console.log('range', range)
 
     // Get values
-    var values = zipcodes.features
-        .map(function(d) { return d.properties[dim.prop] })
-        .sort(function(a, b) { return a - b; })
+    const values = zipcodes.features
+      .map(function (d) { return d.properties[dim.prop]; })
+      .sort(function (a, b) { return a - b; });
 
     // Get distribution
     if (!dim.dist) {
-      var dist = d3.range(bins).map(function(d) {
+      const dist = d3.range(bins).map(function (d) {
         return d3.quantile(values, d / bins);
-      })
+      });
       dim.dist = dist;
     }
 
     // Generate filters
-    var layerFilters = [];
-    for (var p = 0; p < bins; p++) {
-      var filters;
+    const layerFilters = [];
+    for (let p = 0; p < bins; p++) {
+      let filters;
       if (p < bins - 1) {
-        filters = [ 'all',
-          [ '>=', dim.prop, dim.dist[p] ],
-          [ '<', dim.prop, dim.dist[p + 1] ]
-        ]
-      }
-      else {
-        filters = [ 'all',
-          [ '>=', dim.prop, dim.dist[p] ]
-        ]
+        filters = [
+          'all',
+          ['>=', dim.prop, dim.dist[p]],
+          ['<', dim.prop, dim.dist[p + 1]],
+        ];
+      } else {
+        filters = [
+          'all',
+          ['>=', dim.prop, dim.dist[p]],
+        ];
       }
       layerFilters.push(filters);
     }
     dim.filters = layerFilters;
-  })
-  d3.select('#message').text('Processed data dimensions...')
+  });
+
+  d3.select('#message').text('Processed data dimensions...');
   // console.log(JSON.stringify(dimensions, null, 1))
 
   function calcGamma(val, gamma) {
@@ -382,7 +383,8 @@ function mapBoxInit() {
 
   function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
     d3.select('#message').text('Initializing map in container: ' + container + '...')
-/*
+    d3.select('#message').text('Initializing map in container: ' + container + '...')
+    /*
     console.log('container', container)
     console.log('prop', prop)
     console.log('color', color)
@@ -392,55 +394,56 @@ function mapBoxInit() {
     console.log('filters', filters)
     console.log('title', title)
     console.log('dims', dims)
-*/
-    var dataLayers = [];
+    */
+    const dataLayers = [];
 
-    for (var p = 0; p < bins; p++) {
+    for (let p = 0; p < bins; p++) {
       // add the layer and filters to the dataLayers array
       dataLayers.push({
-        id: 'dataLayer' + p,
+        // id: 'dataLayer' + p,
+        id: `dataLayer${p}`,
         interactive: true,
         type: 'fill',
         source: 'zipcodes',
         paint: {
           'fill-color': color,
-          'fill-opacity': calcGamma((p + 1) / bins, gamma) * opacity
+          'fill-opacity': calcGamma((p + 1) / bins, gamma) * opacity,
         },
-        filter: filters[p]
-      })
+        filter: filters[p],
+      });
     }
 
-    var layers = [];
-    layerStack0.forEach(function(d) { layers.push(d) })
-    dataLayers.forEach(function(d)  { layers.push(d) })
-    layerStack2.forEach(function(d) { layers.push(d) })
+    const layers = [];
+    layerStack0.forEach(function (d) { layers.push(d); });
+    dataLayers.forEach(function (d)  { layers.push(d); });
+    layerStack2.forEach(function (d) { layers.push(d); });
 
     // Init the map
     d3.select('#message').text('Creating map...');
 
     // New SF based initial view
-    var map = new mapboxgl.Map({
-        container: container,
-        maxZoom: 14, //13
-        minZoom: 4,
-        zoom: 10,
-        center: [-122.35, 37.78],
-        style: 'mapbox://styles/mapbox/bright-v8',
-        hash: false
+    const map = new mapboxgl.Map({
+      container,
+      maxZoom: 14, // 13
+      minZoom: 4,
+      zoom: 10,
+      center: [-122.35, 37.78],
+      style: 'mapbox://styles/mapbox/bright-v8',
+      hash: false,
     });
-    d3.select('#message').text('Created map...')
+    d3.select('#message').text('Created map...');
 
 
     // Add controls to the map, and event handler
     map.addControl(new mapboxgl.Navigation());
     d3.selectAll('.mapboxgl-ctrl-compass').on('click', function() {
       d3.select('#tiltSlider').property('value', 0)
-    })
+    });
 
     map.on('load', function() {
       // console.log('load...')
       loader.className = 'done';
-      setTimeout(function() {
+      setTimeout(function () {
         loader.className = 'hide';
       }, 500);
 
@@ -448,35 +451,36 @@ function mapBoxInit() {
       setWindowSize();
 
       d3.select('#map2DataSelect').style('display', 'block');
-      d3.selectAll('.legend').style('display', 'block')
-    })
+      d3.selectAll('.legend').style('display', 'block');
+    });
 
     // Load the counties and zipcode layers at style.load event
-    map.on('style.load', function() {
+    map.on('style.load', function () {
       // console.log('style.load...')
-      d3.select('#message').text('Adding data layers...')
+      d3.select('#message').text('Adding data layers...');
 
       // Add the two data sources before adding the layers
       // Note: extreme performance penalty if adding the data source repeatedly for each layer
       map.addSource('counties', {
-          'type': 'geojson',
-          'data': counties
+        type: 'geojson',
+        data: counties,
       });
 
       map.addSource('zipcodes', {
-          'type': 'geojson',
-          'data': zipcodes
+        type: 'geojson',
+        data: zipcodes,
       });
 
       // Add the zip code layers
-      layers.forEach(function(d, i) {
-        d3.select('#message').text('Adding layer: ' + i + '...')
+      layers.forEach(function (d, i) {
+        // d3.select('#message').text('Adding layer: ' + i + '...')
+        d3.select('#message').text(`Adding layer: ${i}'...`);
         // console.log('--Adding layer', d, i)
-        map.addLayer(d)
-      })
+        map.addLayer(d);
+      });
 
       d3.select('#message').text('Loading map layers – Done');
-    })
+    });
 
     var cursorTrackerDiv = d3.select('#' + container)
       .append('div')
