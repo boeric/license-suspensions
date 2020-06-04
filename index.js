@@ -750,8 +750,8 @@ function mapBoxInit() {
       // This can be any easing function: it takes a number between
       // 0 and 1 and returns another number between 0 and 1
       easing: function (t) {
-          return t;
-      }
+        return t;
+      },
     });
   }
 
@@ -760,18 +760,18 @@ function mapBoxInit() {
   }
 
   // Init first (left) map
-  var d = dimensions[0];
-  d3.select('#message').text('Initializing first map panel...')
+  let d = dimensions[0];
+  d3.select('#message').text('Initializing first map panel...');
   map = initMap('map', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
-  updateLegend('map', d)
+  updateLegend('map', d);
   // window.firstMap = map;
 
   // Init second (right) map
-  var dimensionList = dimensions.map(function(d) { return { prop: d.prop, title: d.title } }).slice(0)
-  var d = dimensions[1];
+  const dimensionList = dimensions.map(function (d) { return { prop: d.prop, title: d.title }; }).slice(0);
+  d = dimensions[1];
 
-  d3.select('#message').text('Initializing second map panel...')
-  var map2 = initMap('map2', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList)
+  d3.select('#message').text('Initializing second map panel...');
+  const map2 = initMap('map2', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList);
   // window.secondMap = map;
   updateLegend('map2', d);
 
