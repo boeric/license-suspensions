@@ -1,152 +1,134 @@
 /* eslint-disable
   no-console,
   no-multi-spaces,
-  func-names
+  func-names,
+  object-curly-newline,
+  prefer-arrow-callback,
+  no-param-reassign,
+  no-restricted-globals,
+  no-alert,
 */
-/* global d3 */
+/* global d3, mapboxgl, topojson */
 
-let dataSet = window.location.search.indexOf('dataFile=2015') != -1 ? 'old' : 'new';
+const dataSet = window.location.search.indexOf('dataFile=2015') !== -1 ? 'old' : 'new';
 let zipData = 'cazipgeo.txt';
-let suspData = dataSet == 'old' ? 'suspensions.txt' : 'suspensions2016.txt';
-let countyTopo = 'county4.json';
-let zipTopo = 'ziptopo6.json';
-let povDist;
+const suspData = dataSet === 'old' ? 'suspensions.txt' : 'suspensions2016.txt';
+const countyTopo = 'county4.json';
+const zipTopo = 'ziptopo6.json';
+// let povDist;
 let counties;
 let zipcodes;
 let data;
 let zipGeo;
 let countyZips;
 let map;
-let bins = 10;
+const bins = 10;
 let currGamma = 0.15;
-let legendElemWidth = 35;
-let legendElemHeight = 18; //13;
-let legendSvgHeight = bins * legendElemHeight + 20;
-let legendSvgWidth = 128;
-let legendMarginLeft = 47;
-let legendMarginTop = 10;
-let fmt = d3.format('.0f');
-let fmt1 = d3.format('.1f');
-let fmtP = d3.format(',.2p');
-let targets = [
-      { name: 'SF Bay Area', location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
-      { name: 'Central LA',  location: [-118.36, 33.92], zoom:  9.9, bearing: 0, speed: 1, curve: 1 },
-      { name: 'Sacramento',  location: [-121.50, 38.53], zoom:  9.9, bearing: 0, speed: 1, curve: 1 },
-      { name: 'San Diego',   location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 },
-    ];
-let loader = document.getElementById('loader');
-
+const legendElemWidth = 35;
+const legendElemHeight = 18; // 13;
+const legendSvgHeight = bins * legendElemHeight + 20;
+const legendSvgWidth = 128;
+const legendMarginLeft = 47;
+const legendMarginTop = 10;
+const fmt = d3.format('.0f');
+// const fmt1 = d3.format('.1f');
+const fmtP = d3.format(',.2p');
+const targets = [
+  { name: 'SF Bay Area', location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
+  { name: 'Central LA',  location: [-118.36, 33.92], zoom:  9.9, bearing: 0, speed: 1, curve: 1 },
+  { name: 'Sacramento',  location: [-121.50, 38.53], zoom:  9.9, bearing: 0, speed: 1, curve: 1 },
+  { name: 'San Diego',   location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 },
+];
+const loader = document.getElementById('loader');
 loader.className = '';
-
-window.onload = function () { start(); };
-window.onresize = function () { setWindowSize(); };
-
-function setWindowSize() {
-  const width = (window.innerWidth - 6) / 2;
-  d3.select('#map').style('width', width + 'px')
-  d3.select('#map2').style('width', width + 'px')
-
-  setOverlayPos();
-}
-setWindowSize();
-
-function setOverlayPos() {
-  const main = d3.select('#main');
-  const height = main.node().offsetHeight;
-  const windowHeight = window.innerHeight;
-
-  main.style('top', function(d) {
-    return Math.max(10, window.innerHeight - height - 25) + 'px'
-  });
-}
-setOverlayPos();
 
 function start() {
   // Load zip code data
-  d3.tsv(zipData, function(_) {
+  d3.tsv(zipData, function (_) {
     zipGeo = _;
 
-    // Create object for quick lookup of a county's zip codes (used by code that dynamically injects zip code geometry)
+    // Create object for quick lookup of a county's zip codes (used by code that dynamically
+    // injects zip code geometry)
     countyZips = {};
-    zipGeo.forEach(function(d) {
-      var key = d.County.trim();
-      if (countyZips[key] == undefined) countyZips[key] = [];
-      countyZips[key].push(+d.ZipCode)
+    zipGeo.forEach(function (d) {
+      const key = d.County.trim();
+      if (countyZips[key] === undefined) countyZips[key] = [];
+      countyZips[key].push(+d.ZipCode);
     });
 
     // Create data structure used to merge zip code and suspension data
-    var obj = {};
+    const obj = {};
     zipGeo.forEach(function(d) {
-      var key = d.ZipCode.trim();
+      const key = d.ZipCode.trim();
       obj[key] = d;
       delete obj[key].ZipCode;
-    })
+    });
     zipGeo = obj; // Redefine zipGeo from array to object
     // console.log('zipGeo', zipGeo)
 
     // Load driver license suspension data
-    d3.select('#message', 'Loading driver license suspension data...')
+    d3.select('#message', 'Loading driver license suspension data...');
     d3.tsv(suspData, function(suspensions) {
       console.log('loaded driver license suspension data...');
 
       // Merge in the zip geo data and create main data structure
-      data = suspensions.map(function(d, i, a) {
-        var zipData = zipGeo[d.ZipCode];
-        Object.keys(zipData).forEach(function(prop) { d[prop] = zipData[prop]; })
+      data = suspensions.map(function (d) {
+        const zipData = zipGeo[d.ZipCode];
+        Object.keys(zipData).forEach(function (prop) { d[prop] = zipData[prop]; });
         return d;
-      })
+      });
 
       // Convert to numbers
-      data.forEach(function(d) {
-        var props = Object.keys(d);
-        props.forEach(function(prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; })
-      })
+      data.forEach(function (d) {
+        const props = Object.keys(d);
+        props.forEach(function (prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; });
+      });
 
-      // Sort data in ascending order (so highest suspension rates are drawn last and on top of the stack)
-      data.sort(function(a, b) {
+      // Sort data in ascending order (so highest suspension rates are drawn last and on top of
+      // the stack)
+      data.sort(function (a, b) {
         return a.FTAFTPS100 - b.FTAFTPS100;
-      })
+      });
 
       // Create data structure for quick lookup (used by zip code geometry event handler)
       zipData = {};
-      data.forEach(function(d) {
+      data.forEach(function (d) {
         zipData[d.ZipCode] = d;
-      })
+      });
       // console.log('zipData', zipData)
 
       // Load county geometry
       d3.select('#message').text('Loading county boundary data...');
-      d3.json(countyTopo, function(error, county) {
+      d3.json(countyTopo, function (error, county) {
         counties = topojson.feature(county, county.objects.CaliforniaCounty);
         console.log('loaded county info...');
 
         // Load zip code geometry
-        d3.select('#message').text('Loading zip code boundary data...')
-        d3.json(zipTopo, function(error, zip) {
+        d3.select('#message').text('Loading zip code boundary data...');
+        d3.json(zipTopo, function (error, zip) {
           zipcodes = topojson.feature(zip, zip.objects.zip);
-          console.log('loaded zip code geo json file...')
+          console.log('loaded zip code geo json file...');
 
-          var caZipCodeMin = 90001;
-          var caZipCodeMax = 96162;
-          zipcodes.features = zipcodes.features.filter(function(item) {
-            if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
-          })
+          const caZipCodeMin = 90001;
+          const caZipCodeMax = 96162;
+          zipcodes.features = zipcodes.features.filter(function (item) {
+            // if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
+            return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
+          });
           // console.log('number of zipcodes: ', zipcodes.features.length)
           // console.log('zipcodes', zipcodes);
 
-          var nodataZipCodes = [];
-          var undefCount = 0;
-          zipcodes.features.forEach(function(d) {
+          const nodataZipCodes = [];
+          // let undefCount = 0;
+          zipcodes.features.forEach(function (d) {
             d.properties.zip = +d.properties.zip;
-            var zipCode = d.properties.zip;
+            const zipCode = d.properties.zip;
 
-            if (zipData[zipCode] == undefined) {
+            if (zipData[zipCode] === undefined) {
               nodataZipCodes.push(zipCode);
-
-              var zipGeoItem = zipGeo[zipCode];
+              // var zipGeoItem = zipGeo[zipCode];
               d.properties.noData = true;
-            }
-            else {
+            } else {
               d.properties.noData = false;
               d.properties.ZipCode = zipData[d.properties.zip].ZipCode;
               d.properties.Places = zipData[d.properties.zip].Places;
@@ -160,28 +142,57 @@ function start() {
               d.properties.WhiteNH = zipData[d.properties.zip].WhiteNH;
               d.properties.Asian = zipData[d.properties.zip].Asian;
             }
+          });
 
-          })
           // console.log('nodataZipCodes: ', nodataZipCodes)
-          console.log('Zip codes with no data: ', nodataZipCodes.length)
+          console.log('Zip codes with no data: ', nodataZipCodes.length);
 
-          zipcodes.features = zipcodes.features.filter(function(d) {
+          zipcodes.features = zipcodes.features.filter(function (d) {
+            /*
             if (d.properties.noData) return false;
             else return true;
-          })
+            */
+            return !d.properties.noData;
+          });
           // console.log('zipcodes.features.length: ', zipcodes.features)
           console.log('Zip codes with data: ', zipcodes.features.length);
 
           if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
           else mapBoxInit();
-        })
-      })
-    })
-  })
+        });
+      });
+    });
+  });
 }
 
+function setOverlayPos() {
+  const main = d3.select('#main');
+  const height = main.node().offsetHeight;
+  // const windowHeight = window.innerHeight;
+
+  main.style('top', function () {
+    return `${Math.max(10, window.innerHeight - height - 25)}px`;
+  });
+}
+
+function setWindowSize() {
+  const width = (window.innerWidth - 6) / 2;
+  d3.select('#map').style('width', `${width}px`);
+  d3.select('#map2').style('width', `${width}px`);
+
+  setOverlayPos();
+}
+
+window.onload = function () { start(); };
+window.onresize = function () { setWindowSize(); };
+
+setWindowSize();
+setOverlayPos();
+
+
+
 function mapBoxInit() {
-  d3.select('#message').text('Loading vector maps...')
+  d3.select('#message').text('Loading vector maps...');
 
   // Mapbox access token
   mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
