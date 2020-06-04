@@ -9,6 +9,7 @@
   no-alert,
   no-plusplus,
   no-restricted-properties,
+  object-shorthand,
 */
 /* global d3, mapboxgl, topojson */
 
@@ -246,7 +247,7 @@ function mapBoxInit() {
       gamma: 0.15, // 0.40, // 0.70,
       opacity: 0.75, // 0.85,
       invert: false,
-      color: 'darkred'
+      color: 'darkred',
       // dist: d3.range(bins)
     },
     {
@@ -382,8 +383,8 @@ function mapBoxInit() {
   }
 
   function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
-    d3.select('#message').text('Initializing map in container: ' + container + '...')
-    d3.select('#message').text('Initializing map in container: ' + container + '...')
+    // d3.select('#message').text('Initializing map in container: ' + container + '...')
+    d3.select('#message').text(`Initializing map in container: ${container}...`);
     /*
     console.log('container', container)
     console.log('prop', prop)
@@ -437,10 +438,10 @@ function mapBoxInit() {
     // Add controls to the map, and event handler
     map.addControl(new mapboxgl.Navigation());
     d3.selectAll('.mapboxgl-ctrl-compass').on('click', function() {
-      d3.select('#tiltSlider').property('value', 0)
+      d3.select('#tiltSlider').property('value', 0);
     });
 
-    map.on('load', function() {
+    map.on('load', function () {
       // console.log('load...')
       loader.className = 'done';
       setTimeout(function () {
@@ -482,219 +483,246 @@ function mapBoxInit() {
       d3.select('#message').text('Loading map layers – Done');
     });
 
-    var cursorTrackerDiv = d3.select('#' + container)
+    // const cursorTrackerDiv = d3.select('#' + container)
+    const cursorTrackerDiv = d3.select(`#${container}`)
       .append('div')
-        .attr('id', container + 'TrackerDiv')
-        .attr('class', 'trackerDiv')
-        .style('position', 'absolute')
-        .style('top', '0px')
-        .style('left', '0px');
+      // .attr('id', container + 'TrackerDiv')
+      .attr('id', `${container}TrackerDiv`)
+      .attr('class', 'trackerDiv')
+      .style('position', 'absolute')
+      .style('top', '0px')
+      .style('left', '0px');
 
-    var cursorTracker = cursorTrackerDiv
+    /*
+    const cursorTracker = cursorTrackerDiv
       .append('div')
-        .attr('id', container + 'Tracker')
-        .attr('class', 'tracker')
-        .style('position', 'absolute')
-        .style('top', '-40px')
-        .style('left', '-40px')
-        .style('width', '7px')
-        .style('height', '7px')
-        .style('background-color', 'black')
-        .style('border-radius', '50%')
+      .attr('id', container + 'Tracker')
+      .attr('class', 'tracker')
+      .style('position', 'absolute')
+      .style('top', '-40px')
+      .style('left', '-40px')
+      .style('width', '7px')
+      .style('height', '7px')
+      .style('background-color', 'black')
+      .style('border-radius', '50%');
+    */
 
     // Remove zip code area border when zoomed out
-    map.on('zoom', function() {
-        var layer = map.getLayer('zipcodesLine');
-        var zoom = map.getZoom();
-        if (zoom < 9) map.setPaintProperty('zipcodesLine', 'line-width', 0)
-        else map.setPaintProperty('zipcodesLine', 'line-width', 0.5);
+    map.on('zoom', function () {
+      // const layer = map.getLayer('zipcodesLine');
+      const zoom = map.getZoom();
+      if (zoom < 9) {
+        map.setPaintProperty('zipcodesLine', 'line-width', 0);
+      } else {
+        map.setPaintProperty('zipcodesLine', 'line-width', 0.5);
+      }
     });
 
     // Update the overlay
-    map.on('mousemove', function(e) { mouseMove(container, e) })
+    map.on('mousemove', function (e) {
+      mouseMove(container, e);
+    });
 
     // create title elem above the map
-    var titleDiv = d3.select('#' + container)
+    // const titleDiv = d3.select('#' + container)
+    const titleDiv = d3.select(`#${container}`)
       .append('div')
-        .attr('id', container + 'Title')
-        .attr('class', 'headerBox')
+      // .attr('id', container + 'Title')
+      .attr('id', `${container}Title`)
+      .attr('class', 'headerBox');
 
     titleDiv.append('h2')
-        .attr('class', 'header')
-        .text(title);
+      .attr('class', 'header')
+      .text(title);
 
     // Create the legend div and svg (actual svg contents will be set later)
-    var legendDiv = d3.select('#' + container)
-        .append('div')
-          .attr('id', container + 'Legend')
-          .attr('class', 'legend')
-          .style('right', function(d) { return container == 'map2' ? null : '20px' })
-          .style('left', function(d) { return container == 'map2' ? '20px' : null; })
+    // var legendDiv = d3.select('#' + container)
+    const legendDiv = d3.select(`#${container}`)
+      .append('div')
+      // .attr('id', container + 'Legend')
+      .attr('id', `${container}Legend`)
+      .attr('class', 'legend')
+      .style('right', function () { return container === 'map2' ? null : '20px'; })
+      .style('left', function () { return container === 'map2' ? '20px' : null; });
 
     legendDiv.append('label')
-        .style('margin-left', (legendMarginLeft - 3) + 'px')
-        .text('Legend')
+      // .style('margin-left', (legendMarginLeft - 3) + 'px')
+      .style('margin-left', `${(legendMarginLeft - 3)}px`)
+      .text('Legend');
 
-    var svg = legendDiv.append('svg')
-        .attr('width', legendSvgWidth)
-        .attr('height', legendSvgHeight)
-        .attr('id', container + 'LegendSvg')
-        .append('g');
+    /*
+    const svg = legendDiv.append('svg')
+      .attr('width', legendSvgWidth)
+      .attr('height', legendSvgHeight)
+      .attr('id', container + 'LegendSvg')
+      .append('g');
+    */
 
     // If dimensions array is passed in, then select elem to allow choice of data series
     if (dims) {
-      var dataSelectDiv = d3.select('#' + container)
+      // const dataSelectDiv = d3.select('#' + container)
+      const dataSelectDiv = d3.select(`#${container}`)
         .append('div')
-          .attr('id', container + 'DataSelect')
-          .attr('class', 'dataSelect')
-          .style('right', function(d) { return container == 'map2' ? '20px' : null; })
-          .style('left', function(d) { return container == 'map2' ? null : '20px' })
+        // .attr('id', container + 'DataSelect')
+        .attr('id', `${container}DataSelect`)
+        .attr('class', 'dataSelect')
+        .style('right', function () { return container === 'map2' ? '20px' : null; })
+        .style('left', function () { return container === 'map2' ? null : '20px'; });
 
       dataSelectDiv.append('label')
-          .text('Select data series')
+        .text('Select data series');
 
       dataSelectDiv.append('select')
-          .on('change', function() {
-            var elem = d3.select(this)
-            var value = elem.property('value')
-            dims.slice(1).some(function(d, i) {
-              if (d.prop == value) {
-                setDimension(i + 1);
-                return true;
-              }
-            })
-          })
-          .selectAll('option')
-          .data(dims.slice(1))
-        .enter().append('option')
-          .attr('value', function(d) { return d.prop })
-          .text(function(d) { return d.title })
+        .on('change', function() {
+          const elem = d3.select(this);
+          const value = elem.property('value');
+          dims.slice(1).some(function (d, i) {
+            if (d.prop === value) {
+              setDimension(i + 1);
+              return true;
+            }
+            return false;
+          });
+        })
+        .selectAll('option')
+        .data(dims.slice(1))
+        .enter()
+        .append('option')
+        .attr('value', function (d) { return d.prop; })
+        .text(function (d) { return d.title; });
 
       // Is there a querystring showSettings parameter?
-      var query = window.location.search;
-      var display = 'none';
-      if (query.indexOf('showSettings=true') != -1) display = 'block';
+      const query = window.location.search;
+      let display = 'none';
+      if (query.indexOf('showSettings=true') !== -1) {
+        display = 'block';
+      }
 
-      var rangeDiv = dataSelectDiv.append('div')
-          .style('display', display)
+      const rangeDiv = dataSelectDiv.append('div')
+        .style('display', display);
 
-      var span = rangeDiv.append('span')
-          .style('display', 'block')
-          .style('margin-top', '20px')
+      let span = rangeDiv.append('span')
+        .style('display', 'block')
+        .style('margin-top', '20px');
 
       span.append('label')
-          .style('display', 'block')
-          .text('Contrast')
+        .style('display', 'block')
+        .text('Contrast');
 
       span.append('input')
-          .attr('id', 'contrastRange')
-          .attr('min', 0)
-          .attr('max', 100)
-          .attr('step', 1)
-          .attr('value', 100)
-          .attr('type', 'range')
-          .style('width', '200px')
-          .on('change', function() { rangeContrastEvent.call(this) })
-          .on('input', function() { rangeContrastEvent.call(this) })
+        .attr('id', 'contrastRange')
+        .attr('min', 0)
+        .attr('max', 100)
+        .attr('step', 1)
+        .attr('value', 100)
+        .attr('type', 'range')
+        .style('width', '200px')
+        .on('change', function () { rangeContrastEvent.call(this); })
+        .on('input', function () { rangeContrastEvent.call(this); });
 
       span.append('p')
-          .attr('id', 'contrastText')
-          .style('margin-top', '0px')
-          .text('value');
+        .attr('id', 'contrastText')
+        .style('margin-top', '0px')
+        .text('value');
 
       span = rangeDiv.append('span')
-          .style('display', display)
-          .style('margin-top', '20px')
+        .style('display', display)
+        .style('margin-top', '20px');
 
       span.append('label')
-          .style('display', 'block')
-          .text('Opacity');
+        .style('display', 'block')
+        .text('Opacity');
 
       span.append('input')
-          .attr('id', 'opacityRange')
-          .attr('min', 0)
-          .attr('max', 100)
-          .attr('step', 1)
-          .attr('value', 100)
-          .attr('type', 'range')
-          .style('width', '200px')
-          .on('change', function() { rangeOpacityEvent.call(this) })
-          .on('input', function() { rangeOpacityEvent.call(this) })
+        .attr('id', 'opacityRange')
+        .attr('min', 0)
+        .attr('max', 100)
+        .attr('step', 1)
+        .attr('value', 100)
+        .attr('type', 'range')
+        .style('width', '200px')
+        .on('change', function () { rangeOpacityEvent.call(this); })
+        .on('input', function () { rangeOpacityEvent.call(this); });
 
       span.append('p')
-          .attr('id', 'opacityText')
-          .style('margin-top', '0px')
-          .text('value');
+        .attr('id', 'opacityText')
+        .style('margin-top', '0px')
+        .text('value');
 
       // Create quick move select
       dataSelectDiv.append('label')
         .style('display', 'block')
         .style('margin-top', '15px')
-        .text('Quick move')
+        .text('Quick move');
 
-      var flyToSelect = dataSelectDiv.append('select')
-          .style('margin-bottom', '10px')
-          .on('change', function() {
-            var elem = d3.select(this);
-            var value = elem.property('value');
-            // console.log(value)
-            flyTo(targets[+value]);
-          });
+      const flyToSelect = dataSelectDiv.append('select')
+        .style('margin-bottom', '10px')
+        .on('change', function () {
+          const elem = d3.select(this);
+          const value = elem.property('value');
+          // console.log(value)
+          flyTo(targets[+value]);
+        });
 
-      var options = flyToSelect.selectAll('option')
-          .data(targets)
+      const options = flyToSelect.selectAll('option')
+        .data(targets)
         .enter().append('option')
-          .property('value', function(d, i) { return i; })
-          .text(function(d) { return d.name; })
+        .property('value', function(d, i) { return i; })
+        .text(function(d) { return d.name; });
 
       // Create contrast radio buttons
-      var contrastData = [{ label: 'High', value: 15, checked: true }, { label: 'Medium', value: 40, checked: false }, { label: 'Low', value: 80, checked: false }]
-      var contrastRadio = dataSelectDiv.append('div')
+      const contrastData = [
+        { label: 'High', value: 15, checked: true },
+        { label: 'Medium', value: 40, checked: false },
+        { label: 'Low', value: 80, checked: false },
+      ];
+
+      const contrastRadio = dataSelectDiv.append('div');
       contrastRadio.append('legend')
-          .style('font-weight', 'bold')
-          .style('padding', '0px')
-          .style('margin-top', '5px')
-          .text('Contrast');
+        .style('font-weight', 'bold')
+        .style('padding', '0px')
+        .style('margin-top', '5px')
+        .text('Contrast');
 
       contrastRadio.selectAll('.contrastRadioBtn')
-          .data(contrastData)
+        .data(contrastData)
         .enter().append('label')
-          .text(function(d) { return d.label; })
-          .style('font-weight', 'normal')
+        .text(function (d) { return d.label; })
+        .style('font-weight', 'normal')
         .append('input')
-          .attr('type', 'radio')
-          .attr('name', 'contrast')
-          .attr('value', function(d) { return d.value; })
-          .property('checked', function(d) { return d.checked })
-          .style('margin-right', '10px')
-          .text(function(d) { return d.value; })
-          .on('change', function() {
-            var value = d3.select('input[name=contrast]:checked').property('value')
-            // console.log('value', value)
-            currGamma = value / 100;
-            var dim = getDimension();
-            setDimension(dim);
-            updateMainContrast();
-          })
+        .attr('type', 'radio')
+        .attr('name', 'contrast')
+        .attr('value', function(d) { return d.value; })
+        .property('checked', function(d) { return d.checked; })
+        .style('margin-right', '10px')
+        .text(function (d) { return d.value; })
+        .on('change', function () {
+          const value = d3.select('input[name=contrast]:checked').property('value');
+          // console.log('value', value)
+          currGamma = value / 100;
+          const dim = getDimension();
+          setDimension(dim);
+          updateMainContrast();
+        });
     }
 
     function rangeContrastEvent() {
-      var elem = d3.select(this)
-      var value = elem.property('value')
-      //console.log('value', value)
+      const elem = d3.select(this)
+      const value = elem.property('value')
+      // console.log('value', value)
       d3.select('#contrastText').text(fmt(value));
 
-      var dim = getDimension();
+      const dim = getDimension();
       setDimension(dim, value / 100)
     }
 
     function rangeOpacityEvent() {
-      var elem = d3.select(this)
-      var value = elem.property('value')
+      const elem = d3.select(this)
+      const value = elem.property('value')
       d3.select('#opacityText').text(value);
 
-      var dim = getDimension();
-      var d = dimensions[dim];
+      const dim = getDimension();
+      const d = dimensions[dim];
       d.opacity = value / 100;
 
       setDimension(dim, d.gamma, d.opacity, d.color)
@@ -705,30 +733,30 @@ function mapBoxInit() {
   }
   // End initMap
 
-  function fly(idx) {
-    flyTo(targets[idx]);
+  function flyTo(target) {
+    map.flyTo({
+      // These options control the ending camera position: centered at
+      // the target, at zoom level 9, and north up
+      center: target.location,
+      zoom: target.zoom,
+      bearing: target.bearing,
+
+      // These options control the flight curve, making it move
+      // slowly and zoom out almost completely before starting
+      // to pan
+      speed: target.speed,
+      curve: target.curve,
+
+      // This can be any easing function: it takes a number between
+      // 0 and 1 and returns another number between 0 and 1
+      easing: function (t) {
+          return t;
+      }
+    });
   }
 
-  function flyTo(target) {
-      map.flyTo({
-        // These options control the ending camera position: centered at
-        // the target, at zoom level 9, and north up
-        center: target.location,
-        zoom: target.zoom,
-        bearing: target.bearing,
-
-        // These options control the flight curve, making it move
-        // slowly and zoom out almost completely before starting
-        // to pan
-        speed: target.speed,
-        curve: target.curve,
-
-        // This can be any easing function: it takes a number between
-        // 0 and 1 and returns another number between 0 and 1
-        easing: function (t) {
-            return t;
-        }
-    });
+  function fly(idx) {
+    flyTo(targets[idx]);
   }
 
   // Init first (left) map
