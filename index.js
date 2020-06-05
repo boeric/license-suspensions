@@ -896,40 +896,38 @@ function mapBoxInit() {
       .attr('y2', function (d, i) { return legendMarginTop + i * legendElemHeight; })
       .style('stroke', 'gray');
 
-    var leftScale = svg.selectAll('.leftScale')
-        .data(tickData)
-      .enter().append('text')
-        .attr('class', 'leftScale')
-        .attr('x', legendMarginLeft - 6)
-        .attr('y', function(d, i) {
-          return legendMarginTop + 3 + i * legendElemHeight
-        })
-        .text(function(d, i) {
-          // return dim.inverse ? (bins - i) * 10 + '%' : i * 10 + '%';
-          // return i * 10 + '%';
-          // return (bins - i) / bins * 100 + '%'
-          return i / bins * 100 + '%'
-        })
-        .attr('text-anchor', 'end')
-        .style('font-size', '10px')
-
-    var rightScale = svg.selectAll('.rightScale')
+    const leftScale = svg.selectAll('.leftScale')
       .data(tickData)
+      .enter().append('text')
+      .attr('class', 'leftScale')
+      .attr('x', legendMarginLeft - 6)
+      .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
+      .text(function (d, i) {
+        // return dim.inverse ? (bins - i) * 10 + '%' : i * 10 + '%';
+        // return i * 10 + '%';
+        // return (bins - i) / bins * 100 + '%'
+        // return i / bins * 100 + '%'
+        return `${i / bins * 100}%`;
+      })
+      .attr('text-anchor', 'end')
+      .style('font-size', '10px');
+
+    const rightScale = svg.selectAll('.rightScale')
+      .data(tickData);
 
     rightScale
-    .enter().append('text')
-      .attr('class', 'rightScale')
+      .enter()
+      .append('text')
+      .attr('class', 'rightScale');
 
     rightScale
       .attr('x', legendMarginLeft + legendElemWidth + 6)
-      .attr('y', function(d, i) {
-        return legendMarginTop + 3 + i * legendElemHeight
+      .attr('y', function (d, i) {
+        return legendMarginTop + 3 + i * legendElemHeight;
       })
-      .text(function(d, i) {
-        return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit;
-      })
+      .text(function (d) { return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit; })
       .attr('text-anchor', 'start')
-      .style('font-size', '10px')
+      .style('font-size', '10px');
 
     svg.selectAll('.leftLegendTitle')
         .data([{ text: 'Percentiles', rotate: '270' }])
