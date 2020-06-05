@@ -768,7 +768,9 @@ function mapBoxInit() {
   // window.firstMap = map;
 
   // Init second (right) map
-  const dimensionList = dimensions.map(function (d) { return { prop: d.prop, title: d.title }; }).slice(0);
+  const dimensionList = dimensions
+    .map(function (d) { return { prop: d.prop, title: d.title }; })
+    .slice(0);
   d = dimensions[1];
 
   d3.select('#message').text('Initializing second map panel...');
@@ -833,11 +835,11 @@ function mapBoxInit() {
 
   // Updates the legend with colors, opacities and threshold text
   function updateLegend(map, dim) {
-    var data = d3.range(bins).map(function(e, i) {
-      var obj = {};
+    const data = d3.range(bins).map(function(e, i) {
+      let obj = {};
       obj.color = dim.color;
-      var gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins;
-      var gammaArg = (i + 1) / bins;
+      // let gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins;
+      const gammaArg = (i + 1) / bins;
       obj.opacity = calcGamma(gammaArg, dim.gamma) * dim.opacity;
       obj.value = dim.dist[i];
       obj.preUnit = dim.preUnit;
@@ -846,62 +848,53 @@ function mapBoxInit() {
       obj.divide = dim.divide;
       obj.inverse = dim.inverse;
       return obj;
-    })
+    });
 
-    var tickData = data.slice();
+    const tickData = data.slice();
     tickData.push({ last: true, value: dim.range[1], preUnit: dim.preUnit, postUnit: dim.postUnit, fmt: dim.fmt, divide: dim.divide, inverse: dim.inverse })
     if (dim.inverse) tickData.reverse();
 
-    var svg = d3.select('#' + map + 'LegendSvg').select('g')
+    // var svg = d3.select('#' + map + 'LegendSvg').select('g')
+    const svg = d3.select(`#${map}LegendSvg`).select('g');
 
     // Append opaque background
     svg.selectAll('.backgroundRect')
-        .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: 'white', opacity: 1 }])
+      .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: 'white', opacity: 1 }])
       .enter().append('rect')
-        .attr('class', 'backgroundRect')
-        .attr('width', function(d) { return d.width; })
-        .attr('height', function(d) { return d.height; })
-        .attr('x', function(d) { return d.x; })
-        .attr('y', function(d) { return d.y; })
-        .style('fill', function(d) { return d.color; })
-        .style('opacity', function(d) { return d.opacity; })
+      .attr('class', 'backgroundRect')
+      .attr('width', function (d) { return d.width; })
+      .attr('height', function (d) { return d.height; })
+      .attr('x', function (d) { return d.x; })
+      .attr('y', function (d) { return d.y; })
+      .style('fill', function (d) { return d.color; })
+      .style('opacity', function (d) { return d.opacity; });
 
-    var boxes = svg.selectAll('.foregroundRect')
-        .data(data)
+    const boxes = svg.selectAll('.foregroundRect')
+      .data(data);
 
     boxes
       .enter().append('rect')
-        .attr('class', 'foregroundRect')
-        .attr('width', legendElemWidth)
-        .attr('height', legendElemHeight)
-        .attr('x', legendMarginLeft)
-        .attr('y', function(d, i) {
-          return legendMarginTop + i * legendElemHeight
-        })
-        .style('stroke', 'gray')
+      .attr('class', 'foregroundRect')
+      .attr('width', legendElemWidth)
+      .attr('height', legendElemHeight)
+      .attr('x', legendMarginLeft)
+      .attr('y', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+      .style('stroke', 'gray');
 
     boxes
-        .style('fill', function(d) {
-          return d.color;
-        })
-        .style('opacity', function(d) {
-          return d.opacity + 0.0001;
-        });
+      .style('fill', function(d) { return d.color; })
+      .style('opacity', function(d) { return d.opacity + 0.0001; });
 
 
-    var ticks = svg.selectAll('.leftTick')
-        .data(tickData)
+    const ticks = svg.selectAll('.leftTick')
+      .data(tickData)
       .enter().append('line')
-        .attr('class', 'leftTick')
-        .attr('x1', legendMarginLeft - 5)
-        .attr('x2', legendMarginLeft + legendElemWidth + 5)
-        .attr('y1', function(d, i) {
-          return legendMarginTop + i * legendElemHeight
-        })
-        .attr('y2', function(d, i) {
-          return legendMarginTop + i * legendElemHeight
-        })
-        .style('stroke', 'gray')
+      .attr('class', 'leftTick')
+      .attr('x1', legendMarginLeft - 5)
+      .attr('x2', legendMarginLeft + legendElemWidth + 5)
+      .attr('y1', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+      .attr('y2', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+      .style('stroke', 'gray');
 
     var leftScale = svg.selectAll('.leftScale')
         .data(tickData)
