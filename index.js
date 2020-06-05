@@ -10,6 +10,8 @@
   no-plusplus,
   no-restricted-properties,
   object-shorthand,
+  no-shadow,
+  key-spacing,
 */
 /* global d3, mapboxgl, topojson */
 
@@ -30,7 +32,7 @@ let currGamma = 0.15;
 const legendElemWidth = 35;
 const legendElemHeight = 18; // 13;
 const legendSvgHeight = bins * legendElemHeight + 20;
-const legendSvgWidth = 128;
+// const legendSvgWidth = 128;
 const legendMarginLeft = 47;
 const legendMarginTop = 10;
 const fmt = d3.format('.0f');
@@ -61,7 +63,7 @@ function start() {
 
     // Create data structure used to merge zip code and suspension data
     const obj = {};
-    zipGeo.forEach(function(d) {
+    zipGeo.forEach(function (d) {
       const key = d.ZipCode.trim();
       obj[key] = d;
       delete obj[key].ZipCode;
@@ -1129,19 +1131,33 @@ function mapBoxInit() {
     const t = container === 'map'
       ? { tracker: 'map2', noTracker: 'map' }
       : { tracker: 'map', noTracker: 'map2' };
-    d3.select('#' + t.tracker + 'Tracker').style('left', e.point.x + 'px').style('top', e.point.y + 'px');
-    d3.select('#' + t.noTracker + 'Tracker').style('left', '-40px').style('top', '-40px')
 
-    map.featuresAt(e.point, {radius: 5}, function (error, features) {
+    // d3.select('#' + t.tracker + 'Tracker').style('left', e.point.x + 'px').style('top', e.point.y + 'px');
+    d3.select(`#${t.tracker}Tracker`)
+      .style('left', `${e.point.x}px`)
+      .style('top', `${e.point.y}px`);
+
+    // d3.select('#' + t.noTracker + 'Tracker').style('left', '-40px').style('top', '-40px')
+    d3.select(`#${t.noTracker}Tracker`)
+      .style('left', '-40px')
+      .style('top', '-40px');
+
+    map.featuresAt(e.point, { radius: 5 }, function (error, features) {
       if (error) throw error;
-      if (features.length == 0) return;
+      if (features.length === 0) return;
 
       // Separate county and zip code entries in the features array
-      var countyInfo = features.filter(function(d) { if (d.properties.ALAND != undefined) return true });
-      var zipInfo = features.filter(function(d) { if (d.properties.City != undefined) return true });
+      // const countyInfo = features.filter(function (d) { if (d.properties.ALAND !== undefined) return true; });
+      // const countyInfo = features.filter(function (d) { return d.properties.ALAND !== undefined; });
+      const countyInfo = features.filter((d) => d.properties.ALAND !== undefined);
+
+
+      // const zipInfo = features.filter(function (d) { if (d.properties.City !== undefined) return true; });
+      // const zipInfo = features.filter(function (d) { return d.properties.City !== undefined; });
+      const zipInfo = features.filter((d) => d.properties.City !== undefined);
 
       // Clear properties
-      var item = {
+      const item = {
         County: '',
         ZipCode: '',
         Places: '',
@@ -1158,7 +1174,7 @@ function mapBoxInit() {
 
       // Obtain county name from first item in county array
       if (countyInfo.length > 0) {
-        item.County = countyInfo[0].properties.NAME
+        item.County = countyInfo[0].properties.NAME;
       }
 
       // Obtain zip code info from first item in zip code array
@@ -1193,7 +1209,7 @@ function mapBoxInit() {
       ];
       */
       // console.log('item', item)
-      var text = [
+      const text = [
         '<b>Location: </b>' +
             ' <b>' + item.Places + '</b>' +
             ' Zip: ' + item.ZipCode +
