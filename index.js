@@ -495,10 +495,10 @@ function mapBoxInit() {
       .style('top', '0px')
       .style('left', '0px');
 
-    /*
-    const cursorTracker = cursorTrackerDiv
+    cursorTrackerDiv
       .append('div')
-      .attr('id', container + 'Tracker')
+      // .attr('id', container + 'Tracker')
+      .attr('id', `${container}Tracker`)
       .attr('class', 'tracker')
       .style('position', 'absolute')
       .style('top', '-40px')
@@ -507,7 +507,6 @@ function mapBoxInit() {
       .style('height', '7px')
       .style('background-color', 'black')
       .style('border-radius', '50%');
-    */
 
     // Remove zip code area border when zoomed out
     map.on('zoom', function () {
