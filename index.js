@@ -48,10 +48,6 @@ const targets = [
 const loader = document.getElementById('loader');
 loader.className = '';
 
-
-
-
-
 function setOverlayPos() {
   const main = d3.select('#main');
   const height = main.node().offsetHeight;
@@ -70,10 +66,9 @@ function setWindowSize() {
   setOverlayPos();
 }
 
-
-
-
-
+function calcGamma(val, gamma) {
+  return Math.pow(val, (1 / gamma));
+}
 
 function mapBoxInit() {
   // dataset dimensions
@@ -178,7 +173,7 @@ function mapBoxInit() {
   // Updates the legend with colors, opacities and threshold text
   function updateLegend(map, dim) {
     const data = d3.range(bins).map(function(e, i) {
-      let obj = {};
+      const obj = {};
       obj.color = dim.color;
       // let gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins;
       const gammaArg = (i + 1) / bins;
@@ -193,7 +188,15 @@ function mapBoxInit() {
     });
 
     const tickData = data.slice();
-    tickData.push({ last: true, value: dim.range[1], preUnit: dim.preUnit, postUnit: dim.postUnit, fmt: dim.fmt, divide: dim.divide, inverse: dim.inverse })
+    tickData.push({
+      last: true,
+      value: dim.range[1],
+      preUnit: dim.preUnit,
+      postUnit: dim.postUnit,
+      fmt: dim.fmt,
+      divide: dim.divide,
+      inverse: dim.inverse
+    });
     if (dim.inverse) tickData.reverse();
 
     // var svg = d3.select('#' + map + 'LegendSvg').select('g')
@@ -227,8 +230,7 @@ function mapBoxInit() {
       .style('fill', function(d) { return d.color; })
       .style('opacity', function(d) { return d.opacity + 0.0001; });
 
-
-    const ticks = svg.selectAll('.leftTick')
+    svg.selectAll('.leftTick')
       .data(tickData)
       .enter().append('line')
       .attr('class', 'leftTick')
@@ -238,7 +240,7 @@ function mapBoxInit() {
       .attr('y2', function (d, i) { return legendMarginTop + i * legendElemHeight; })
       .style('stroke', 'gray');
 
-    const leftScale = svg.selectAll('.leftScale')
+    svg.selectAll('.leftScale')
       .data(tickData)
       .enter().append('text')
       .attr('class', 'leftScale')
@@ -598,10 +600,6 @@ function mapBoxInit() {
 
   d3.select('#message').text('Processed data dimensions...');
   // console.log(JSON.stringify(dimensions, null, 1))
-
-  function calcGamma(val, gamma) {
-    return Math.pow(val, (1 / gamma));
-  }
 
   function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
     // d3.select('#message').text('Initializing map in container: ' + container + '...')
