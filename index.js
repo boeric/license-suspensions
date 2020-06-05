@@ -71,7 +71,7 @@ function start() {
 
     // Load driver license suspension data
     d3.select('#message', 'Loading driver license suspension data...');
-    d3.tsv(suspData, function(suspensions) {
+    d3.tsv(suspData, function (suspensions) {
       console.log('loaded driver license suspension data...');
 
       // Merge in the zip geo data and create main data structure
@@ -974,64 +974,62 @@ function mapBoxInit() {
   }
 
   function updatePercentileMarker(zipCode) {
-    var idx = -1;
-    var idx2 = -1;
-    var inverse = false;
-    var inverse2 = false;
+    let idx = -1;
+    let idx2 = -1;
+    let inverse = false;
+    let inverse2 = false;
 
-    if (zipCode == '') {
+    if (zipCode === '') {
       // console.log('remove')
     } else {
-      var data = zipData[zipCode];
+      const data = zipData[zipCode];
       if (data) {
-
         // Handle map (dim 0)
-        var dim = dimensions[0];
-        var value = data[dim.prop]
-        var dist = dim.dist;
-        dist.some(function(d) {
+        let dim = dimensions[0];
+        let value = data[dim.prop];
+        let { dist } = dim;
+
+        dist.some(function (d) {
           if (d > value) return true;
           idx++;
-        })
+        });
         inverse = dim.inverse;
 
         // Handle map2
         dim = dimensions[getDimension()];
-        value = data[dim.prop]
+        value = data[dim.prop];
         dist = dim.dist;
-        dist.some(function(d) {
+        dist.some(function (d) {
           if (d > value) return true;
           idx2++;
-        })
+        });
         inverse2 = dim.inverse;
         // console.log('percentile2: ' + idx2)
       }
     }
 
     // Set the marker
-    setPercentileMarker('map', idx, inverse)
-    setPercentileMarker('map2', idx2, inverse2)
+    setPercentileMarker('map', idx, inverse);
+    setPercentileMarker('map2', idx2, inverse2);
   }
 
   function setPercentileMarker(map, percentile, inverse) {
-    var pos = percentile == -1 ? -100 : inverse ? (bins - percentile) * legendElemHeight : (percentile + 1) * legendElemHeight
+    let pos = percentile === -1 ? -100 : inverse ? (bins - percentile) * legendElemHeight : (percentile + 1) * legendElemHeight;
     d3.select('#' + map + 'LegendSvg').select('g').select('.percentileTracker')
-        .attr('cy', function() {
-          return pos
-        })
+      .attr('cy', function () { return pos; });
   }
 
   // Init percentile markers
   setPercentileMarker('map', -1, false);
   setPercentileMarker('map2', -1, false);
 
-  var disable = false;
-  map.on('move', function() {
+  let disable = false;
+  map.on('move', function () {
     if (!disable) {
-      var center = map.getCenter();
-      var zoom = map.getZoom();
-      var pitch = map.getPitch();
-      var bearing = map.getBearing();
+      let center = map.getCenter();
+      let zoom = map.getZoom();
+      let pitch = map.getPitch();
+      let bearing = map.getBearing();
       // console.log(center, zoom, pitch, bearing)
 
       disable = true;
@@ -1043,12 +1041,12 @@ function mapBoxInit() {
     }
   });
 
-  map2.on('move', function() {
+  map2.on('move', function () {
     if (!disable) {
-      var center = map2.getCenter();
-      var zoom = map2.getZoom();
-      var pitch = map2.getPitch();
-      var bearing = map2.getBearing();
+      let center = map2.getCenter();
+      let zoom = map2.getZoom();
+      let pitch = map2.getPitch();
+      let bearing = map2.getBearing();
 
       disable = true;
       map.setCenter(center);
@@ -1057,77 +1055,80 @@ function mapBoxInit() {
       map.setBearing(bearing);
       disable = false;
     }
-  })
+  });
 
-  map.on('drag', function(e) {
+  map.on('drag', function (e) {
     // console.log('drag -----------e', e)
-  })
-  map.on('dragend', function(e) {
+  });
+  map.on('dragend', function (e) {
     // console.log('dragend -----------e', e)
-  })
-  map.on('dragstart', function(e) {
+  });
+  map.on('dragstart', function (e) {
     // console.log('dragstart -----------e', e)
-  })
+  });
 
   // Map pitch handlers
-  d3.select('#tiltSlider').on('change', function() { tiltSlider.call(this) });
-  d3.select('#tiltSlider').on('input',  function() { tiltSlider.call(this) });
   function tiltSlider() {
-    var elem = d3.select(this)
-    var value = +elem.property('value');
-    map.setPitch(value)
+    const elem = d3.select(this);
+    const value = +elem.property('value');
+    map.setPitch(value);
   }
+  d3.select('#tiltSlider').on('change', function () { tiltSlider.call(this); });
+  d3.select('#tiltSlider').on('input',  function () { tiltSlider.call(this); });
+
 
   // Manages the side panel
   function manageSidePanel(data) {
-    var controls = d3.select('#controls');
+    const controls = d3.select('#controls');
 
     // Remove current elements
     controls.selectAll('p').remove();
 
     // Add new p elements
     controls.selectAll('p')
-        .data(data)
+      .data(data)
       .enter().append('p')
-        .html(function(d) { return d; })
+      .html(function (d) { return d; });
 
     setOverlayPos();
   }
 
   // Establish handler for the 'how to use' div
-  d3.select('#howToUse').on('click', function() {
-    var state = d3.select('#instructions').style('display');
-    if (state == 'none') state = 'block';
+  d3.select('#howToUse').on('click', function () {
+    let state = d3.select('#instructions').style('display');
+    if (state === 'none') state = 'block';
     else state = 'none';
     d3.select('#instructions').style('display', state);
     d3.select(this).text(function() {
-      return state == 'none' ? 'How to use...' : 'How to use (close)';
-    })
+      return state === 'none' ? 'How to use...' : 'How to use (close)';
+    });
 
     setOverlayPos();
-  })
+  });
 
   // Handler for 'sources' div
-  d3.select('#sourcesTitle').on('click', function() {
-    var state = d3.select('#sources').style('display');
-    if (state == 'none') state = 'block';
+  d3.select('#sourcesTitle').on('click', function () {
+    let state = d3.select('#sources').style('display');
+    if (state === 'none') state = 'block';
     else state = 'none';
     d3.select('#sources').style('display', state);
-    d3.select(this).text(function() {
-      return state == 'none' ? 'About...' : 'About (close)';
-    })
+    d3.select(this).text(function () {
+      return state === 'none' ? 'About...' : 'About (close)';
+    });
 
     setOverlayPos();
-  })
+  });
 
 
-  function mouseMove (container, e) {
-    var fmtPct = d3.format(',.1%');
-    var fmtInt = d3.format(',d');
-    var fmtFloat = d3.format('.1f');
+  function mouseMove(container, e) {
+    const fmtPct = d3.format(',.1%');
+    const fmtInt = d3.format(',d');
+    const fmtFloat = d3.format('.1f');
 
     // console.log('container', container);
-    var t = container == 'map' ? { tracker: 'map2', noTracker: 'map' } : { tracker: 'map', noTracker: 'map2' };
+    const t = container === 'map'
+      ? { tracker: 'map2', noTracker: 'map' }
+      : { tracker: 'map', noTracker: 'map2' };
     d3.select('#' + t.tracker + 'Tracker').style('left', e.point.x + 'px').style('top', e.point.y + 'px');
     d3.select('#' + t.noTracker + 'Tracker').style('left', '-40px').style('top', '-40px')
 
