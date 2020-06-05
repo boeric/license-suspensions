@@ -20,23 +20,24 @@ let zipData = 'cazipgeo.txt';
 const suspData = dataSet === 'old' ? 'suspensions.txt' : 'suspensions2016.txt';
 const countyTopo = 'county4.json';
 const zipTopo = 'ziptopo6.json';
-// let povDist;
+let povDist;
 let counties;
 let zipcodes;
 let data;
 let zipGeo;
 let countyZips;
 let map;
+let map2;
 const bins = 10;
 let currGamma = 0.15;
 const legendElemWidth = 35;
 const legendElemHeight = 18; // 13;
 const legendSvgHeight = bins * legendElemHeight + 20;
-// const legendSvgWidth = 128;
+const legendSvgWidth = 128;
 const legendMarginLeft = 47;
 const legendMarginTop = 10;
 const fmt = d3.format('.0f');
-// const fmt1 = d3.format('.1f');
+const fmt1 = d3.format('.1f');
 const fmtP = d3.format(',.2p');
 const targets = [
   { name: 'SF Bay Area', location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
@@ -47,128 +48,9 @@ const targets = [
 const loader = document.getElementById('loader');
 loader.className = '';
 
-function start() {
-  // Load zip code data
-  d3.tsv(zipData, function (_) {
-    zipGeo = _;
 
-    // Create object for quick lookup of a county's zip codes (used by code that dynamically
-    // injects zip code geometry)
-    countyZips = {};
-    zipGeo.forEach(function (d) {
-      const key = d.County.trim();
-      if (countyZips[key] === undefined) countyZips[key] = [];
-      countyZips[key].push(+d.ZipCode);
-    });
 
-    // Create data structure used to merge zip code and suspension data
-    const obj = {};
-    zipGeo.forEach(function (d) {
-      const key = d.ZipCode.trim();
-      obj[key] = d;
-      delete obj[key].ZipCode;
-    });
-    zipGeo = obj; // Redefine zipGeo from array to object
-    // console.log('zipGeo', zipGeo)
 
-    // Load driver license suspension data
-    d3.select('#message', 'Loading driver license suspension data...');
-    d3.tsv(suspData, function (suspensions) {
-      console.log('loaded driver license suspension data...');
-
-      // Merge in the zip geo data and create main data structure
-      data = suspensions.map(function (d) {
-        const zipData = zipGeo[d.ZipCode];
-        Object.keys(zipData).forEach(function (prop) { d[prop] = zipData[prop]; });
-        return d;
-      });
-
-      // Convert to numbers
-      data.forEach(function (d) {
-        const props = Object.keys(d);
-        props.forEach(function (prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; });
-      });
-
-      // Sort data in ascending order (so highest suspension rates are drawn last and on top of
-      // the stack)
-      data.sort(function (a, b) {
-        return a.FTAFTPS100 - b.FTAFTPS100;
-      });
-
-      // Create data structure for quick lookup (used by zip code geometry event handler)
-      zipData = {};
-      data.forEach(function (d) {
-        zipData[d.ZipCode] = d;
-      });
-      // console.log('zipData', zipData)
-
-      // Load county geometry
-      d3.select('#message').text('Loading county boundary data...');
-      d3.json(countyTopo, function (error, county) {
-        counties = topojson.feature(county, county.objects.CaliforniaCounty);
-        console.log('loaded county info...');
-
-        // Load zip code geometry
-        d3.select('#message').text('Loading zip code boundary data...');
-        d3.json(zipTopo, function (error, zip) {
-          zipcodes = topojson.feature(zip, zip.objects.zip);
-          console.log('loaded zip code geo json file...');
-
-          const caZipCodeMin = 90001;
-          const caZipCodeMax = 96162;
-          zipcodes.features = zipcodes.features.filter(function (item) {
-            // if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
-            return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
-          });
-          // console.log('number of zipcodes: ', zipcodes.features.length)
-          // console.log('zipcodes', zipcodes);
-
-          const nodataZipCodes = [];
-          // let undefCount = 0;
-          zipcodes.features.forEach(function (d) {
-            d.properties.zip = +d.properties.zip;
-            const zipCode = d.properties.zip;
-
-            if (zipData[zipCode] === undefined) {
-              nodataZipCodes.push(zipCode);
-              // var zipGeoItem = zipGeo[zipCode];
-              d.properties.noData = true;
-            } else {
-              d.properties.noData = false;
-              d.properties.ZipCode = zipData[d.properties.zip].ZipCode;
-              d.properties.Places = zipData[d.properties.zip].Places;
-              d.properties.City = zipData[d.properties.zip].City;
-              d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
-              d.properties.povrate = zipData[d.properties.zip].povrate;
-              d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
-              d.properties.IncK = zipData[d.properties.zip].IncK;
-              d.properties.Black = zipData[d.properties.zip].Black;
-              d.properties.Hisp = zipData[d.properties.zip].Hisp;
-              d.properties.WhiteNH = zipData[d.properties.zip].WhiteNH;
-              d.properties.Asian = zipData[d.properties.zip].Asian;
-            }
-          });
-
-          // console.log('nodataZipCodes: ', nodataZipCodes)
-          console.log('Zip codes with no data: ', nodataZipCodes.length);
-
-          zipcodes.features = zipcodes.features.filter(function (d) {
-            /*
-            if (d.properties.noData) return false;
-            else return true;
-            */
-            return !d.properties.noData;
-          });
-          // console.log('zipcodes.features.length: ', zipcodes.features)
-          console.log('Zip codes with data: ', zipcodes.features.length);
-
-          if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
-          else mapBoxInit();
-        });
-      });
-    });
-  });
-}
 
 function setOverlayPos() {
   const main = d3.select('#main');
@@ -188,53 +70,12 @@ function setWindowSize() {
   setOverlayPos();
 }
 
-window.onload = function () { start(); };
-window.onresize = function () { setWindowSize(); };
 
-setWindowSize();
-setOverlayPos();
+
+
+
 
 function mapBoxInit() {
-  d3.select('#message').text('Loading vector maps...');
-
-  // Mapbox access token
-  mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
-
-  // Define map layers
-  const layerStack0 =  [
-    {
-      id: 'countiesArea',
-      interactive: true,
-      source: 'counties',
-      type: 'fill',
-      paint: {
-        'fill-color': 'white',
-        'fill-opacity': 0.1, // 0.01
-      },
-    },
-    {
-      id: 'countiesLine',
-      source: 'counties',
-      type: 'line',
-      paint: {
-        'line-color': '#999',
-        'line-width': 1,
-      },
-    },
-  ];
-
-  const layerStack2 = [
-    {
-      id: 'zipcodesLine',
-      source: 'zipcodes',
-      type: 'line',
-      paint: {
-        'line-color': 'darkred',
-        'line-width': 0, // 0.5,
-      },
-    },
-  ];
-
   // dataset dimensions
   // var bins = 10;
   const dimensions = [
@@ -333,6 +174,384 @@ function mapBoxInit() {
       color: 'dimgray',
     },
   ];
+
+  // Updates the legend with colors, opacities and threshold text
+  function updateLegend(map, dim) {
+    const data = d3.range(bins).map(function(e, i) {
+      let obj = {};
+      obj.color = dim.color;
+      // let gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins;
+      const gammaArg = (i + 1) / bins;
+      obj.opacity = calcGamma(gammaArg, dim.gamma) * dim.opacity;
+      obj.value = dim.dist[i];
+      obj.preUnit = dim.preUnit;
+      obj.postUnit = dim.postUnit;
+      obj.fmt = dim.fmt;
+      obj.divide = dim.divide;
+      obj.inverse = dim.inverse;
+      return obj;
+    });
+
+    const tickData = data.slice();
+    tickData.push({ last: true, value: dim.range[1], preUnit: dim.preUnit, postUnit: dim.postUnit, fmt: dim.fmt, divide: dim.divide, inverse: dim.inverse })
+    if (dim.inverse) tickData.reverse();
+
+    // var svg = d3.select('#' + map + 'LegendSvg').select('g')
+    const svg = d3.select(`#${map}LegendSvg`).select('g');
+
+    // Append opaque background
+    svg.selectAll('.backgroundRect')
+      .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: 'white', opacity: 1 }])
+      .enter().append('rect')
+      .attr('class', 'backgroundRect')
+      .attr('width', function (d) { return d.width; })
+      .attr('height', function (d) { return d.height; })
+      .attr('x', function (d) { return d.x; })
+      .attr('y', function (d) { return d.y; })
+      .style('fill', function (d) { return d.color; })
+      .style('opacity', function (d) { return d.opacity; });
+
+    const boxes = svg.selectAll('.foregroundRect')
+      .data(data);
+
+    boxes
+      .enter().append('rect')
+      .attr('class', 'foregroundRect')
+      .attr('width', legendElemWidth)
+      .attr('height', legendElemHeight)
+      .attr('x', legendMarginLeft)
+      .attr('y', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+      .style('stroke', 'gray');
+
+    boxes
+      .style('fill', function(d) { return d.color; })
+      .style('opacity', function(d) { return d.opacity + 0.0001; });
+
+
+    const ticks = svg.selectAll('.leftTick')
+      .data(tickData)
+      .enter().append('line')
+      .attr('class', 'leftTick')
+      .attr('x1', legendMarginLeft - 5)
+      .attr('x2', legendMarginLeft + legendElemWidth + 5)
+      .attr('y1', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+      .attr('y2', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+      .style('stroke', 'gray');
+
+    const leftScale = svg.selectAll('.leftScale')
+      .data(tickData)
+      .enter().append('text')
+      .attr('class', 'leftScale')
+      .attr('x', legendMarginLeft - 6)
+      .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
+      .text(function (d, i) {
+        // return dim.inverse ? (bins - i) * 10 + '%' : i * 10 + '%';
+        // return i * 10 + '%';
+        // return (bins - i) / bins * 100 + '%'
+        // return i / bins * 100 + '%'
+        return `${i / bins * 100}%`;
+      })
+      .attr('text-anchor', 'end')
+      .style('font-size', '10px');
+
+    const rightScale = svg.selectAll('.rightScale')
+      .data(tickData);
+
+    rightScale
+      .enter()
+      .append('text')
+      .attr('class', 'rightScale');
+
+    rightScale
+      .attr('x', legendMarginLeft + legendElemWidth + 6)
+      .attr('y', function (d, i) {
+        return legendMarginTop + 3 + i * legendElemHeight;
+      })
+      .text(function (d) { return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit; })
+      .attr('text-anchor', 'start')
+      .style('font-size', '10px');
+
+    svg.selectAll('.leftLegendTitle')
+      .data([{ text: 'Percentiles', rotate: '270' }])
+      .enter().append('text')
+      .attr('class', 'leftLegendTitle')
+      .style('text-anchor', 'middle')
+      .attr('transform', 'rotate(270)')
+      .attr('x', function () { return -legendSvgHeight / 2; })
+      .attr('y', 12)
+      .style('font-weight', 'bold')
+      .text('Percentiles');
+
+    svg.selectAll('.rightLegendTitle')
+      .data([{ text: 'Thresholds', rotate: '90' }])
+      .enter().append('text')
+      .attr('class', 'rightLegendTitle')
+      .style('text-anchor', 'middle')
+      .attr('transform', 'rotate(90)')
+      .attr('x', function () { return legendSvgHeight / 2; })
+      .attr('y', -115)
+      .style('font-weight', 'bold')
+      .text('Thresholds');
+
+    svg.selectAll('.percentileTracker')
+      .data([{ radius: 4, percentile: 3 }])
+      .enter().append('circle')
+      .attr('class', 'percentileTracker')
+      .attr('cx', (legendMarginLeft + legendElemWidth / 2))
+      .attr('cy', function (d) { return d.percentile * legendElemHeight + 1; })
+      .attr('r', function (d) { return d.radius; })
+      .style('fill', 'black');
+  }
+
+  function updatePercentileMarker(zipCode) {
+    let idx = -1;
+    let idx2 = -1;
+    let inverse = false;
+    let inverse2 = false;
+
+    if (zipCode === '') {
+      // console.log('remove')
+    } else {
+      const data = zipData[zipCode];
+      if (data) {
+        // Handle map (dim 0)
+        let dim = dimensions[0];
+        let value = data[dim.prop];
+        let { dist } = dim;
+
+        dist.some(function (d) {
+          if (d > value) return true;
+          idx++;
+        });
+        inverse = dim.inverse;
+
+        // Handle map2
+        dim = dimensions[getDimension()];
+        value = data[dim.prop];
+        dist = dim.dist;
+        dist.some(function (d) {
+          if (d > value) return true;
+          idx2++;
+        });
+        inverse2 = dim.inverse;
+        // console.log('percentile2: ' + idx2)
+      }
+    }
+
+    // Set the marker
+    setPercentileMarker('map', idx, inverse);
+    setPercentileMarker('map2', idx2, inverse2);
+  }
+
+  function setPercentileMarker(map, percentile, inverse) {
+    let pos = percentile === -1 ? -100 : inverse ? (bins - percentile) * legendElemHeight : (percentile + 1) * legendElemHeight;
+    d3.select('#' + map + 'LegendSvg').select('g').select('.percentileTracker')
+      .attr('cy', function () { return pos; });
+  }
+
+  // Manages the side panel
+  function manageSidePanel(data) {
+    const controls = d3.select('#controls');
+
+    // Remove current elements
+    controls.selectAll('p').remove();
+
+    // Add new p elements
+    controls.selectAll('p')
+      .data(data)
+      .enter().append('p')
+      .html(function (d) { return d; });
+
+    setOverlayPos();
+  }
+
+  function mouseMove(container, e) {
+    const fmtPct = d3.format(',.1%');
+    const fmtInt = d3.format(',d');
+    const fmtFloat = d3.format('.1f');
+
+    // console.log('container', container);
+    const t = container === 'map'
+      ? { tracker: 'map2', noTracker: 'map' }
+      : { tracker: 'map', noTracker: 'map2' };
+
+    // d3.select('#' + t.tracker + 'Tracker').style('left', e.point.x + 'px').style('top', e.point.y + 'px');
+    d3.select(`#${t.tracker}Tracker`)
+      .style('left', `${e.point.x}px`)
+      .style('top', `${e.point.y}px`);
+
+    // d3.select('#' + t.noTracker + 'Tracker').style('left', '-40px').style('top', '-40px')
+    d3.select(`#${t.noTracker}Tracker`)
+      .style('left', '-40px')
+      .style('top', '-40px');
+
+    map.featuresAt(e.point, { radius: 5 }, function (error, features) {
+      if (error) throw error;
+      if (features.length === 0) return;
+
+      // Separate county and zip code entries in the features array
+      // const countyInfo = features.filter(function (d) { if (d.properties.ALAND !== undefined) return true; });
+      // const countyInfo = features.filter(function (d) { return d.properties.ALAND !== undefined; });
+      const countyInfo = features.filter((d) => d.properties.ALAND !== undefined);
+
+
+      // const zipInfo = features.filter(function (d) { if (d.properties.City !== undefined) return true; });
+      // const zipInfo = features.filter(function (d) { return d.properties.City !== undefined; });
+      const zipInfo = features.filter((d) => d.properties.City !== undefined);
+
+      // Clear properties
+      const item = {
+        County: '',
+        ZipCode: '',
+        Places: '',
+        FTAFTPS100: '',
+        City: '',
+        povrate: '',
+        Pop15Plus: '',
+        IncK: '',
+        Black: '',
+        Hisp: '',
+        Asian: '',
+        White: '',
+      };
+
+      // Obtain county name from first item in county array
+      if (countyInfo.length > 0) {
+        item.County = countyInfo[0].properties.NAME;
+      }
+
+      // Obtain zip code info from first item in zip code array
+      if (zipInfo.length > 0) {
+        item.ZipCode =    zipInfo[0].properties.zip;
+        item.Places =     zipInfo[0].properties.Places;
+        item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
+        item.City =       zipInfo[0].properties.City;
+        item.povrate =    zipInfo[0].properties.povrate;
+        item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
+        item.IncK =       zipInfo[0].properties.IncK;
+        item.Black =      zipInfo[0].properties.Black;
+        item.Hisp =       zipInfo[0].properties.Hisp;
+        item.Asian =      zipInfo[0].properties.Asian;
+        item.White =      zipInfo[0].properties.WhiteNH;
+      }
+
+      // Set the text in the overlay panel
+      /*
+      var text = [
+        'Zip Code: <b>' + item.ZipCode + '</b>',
+        'Place: <b>' + item.Places + '</b>',
+        'County: <b>' + item.County + '</b>',
+        'Suspensions: <b>' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
+        'Poverty Rate: <b>' + fmtPct(item.povrate / 100) + '</b>',
+        'Population 15y+: <b>' + fmtInt(item.Pop15Plus) + '</b>',
+        'Avg Income: <b>' + fmtFloat('' + item.IncK) + 'K</b>',
+        'Black: <b>' + fmtPct('' + item.Black / 100) + '</b>',
+        'Hispanic: <b>' + fmtPct('' + item.Hisp / 100) + '</b>',
+        'Asian: <b>' + fmtPct('' + item.Asian / 100) + '</b>',
+        'White: <b>' + fmtPct('' + item.White / 100) + '</b>'
+      ];
+      */
+      // console.log('item', item)
+      const text = [
+        '<b>Location: </b>' +
+            ' <b>' + item.Places + '</b>' +
+            ' Zip: ' + item.ZipCode +
+            ' (' + item.County + ' County)',
+        '<b>DL. Suspension Rate: ' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
+        '<b>Poverty Rate: ' + fmtPct(item.povrate / 100) + '</b>',
+        '<b>Population 15y+: ' + fmtInt(item.Pop15Plus) + '</b>',
+        '<b>Avg Income: $' + fmtFloat('' + item.IncK) + 'K</b>',
+        '<b>Racial composition: </b>' +
+            ' Black: ' + fmtPct('' + item.Black / 100) +
+            ' Lat: ' +  fmtPct('' + item.Hisp  / 100) +
+            ' Asian: ' + fmtPct('' + item.Asian / 100) +
+            ' White: ' + fmtPct('' + item.White / 100)
+      ];
+
+      // Update panel
+      manageSidePanel(text);
+
+      // Update percentile marker
+      updatePercentileMarker(item.ZipCode);
+    });
+  }
+
+  let currDim = 1;
+  function setDimension(dim, g, o, c) {
+    const d = dimensions[dim];
+    if (g !== undefined) {
+      d.gamma = +g;
+      currGamma = d.gamma;
+    }
+    if (o !== undefined) d.opacity = +o;
+    if (c !== undefined) d.color = c;
+    currDim = dim;
+    d.gamma = currGamma;
+
+    d3.range(bins).forEach(function (p) {
+      // const layerId = 'dataLayer' + p;
+      const layerId = `dataLayer${p}`;
+      map2.setFilter(layerId, d.filters[p]);
+      map2.setPaintProperty(layerId, 'fill-color', d.color);
+      const gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins;
+      map2.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
+    });
+
+    d3.select('#map2Title > .header').text(d.title);
+    d3.select('#contrastRange').property('value', d.gamma * 100);
+    d3.select('#contrastText').text(fmt(d.gamma * 100));
+    d3.select('#opacityRange').property('value', d.opacity * 100);
+    d3.select('#opacityText').text(fmt(d.opacity * 100));
+
+    // Update legend
+    updateLegend('map2', d)
+  }
+
+  function getDimension() {
+    return currDim;
+  }
+
+  d3.select('#message').text('Loading vector maps...');
+
+  // Mapbox access token
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
+
+  // Define map layers
+  const layerStack0 =  [
+    {
+      id: 'countiesArea',
+      interactive: true,
+      source: 'counties',
+      type: 'fill',
+      paint: {
+        'fill-color': 'white',
+        'fill-opacity': 0.1, // 0.01
+      },
+    },
+    {
+      id: 'countiesLine',
+      source: 'counties',
+      type: 'line',
+      paint: {
+        'line-color': '#999',
+        'line-width': 1,
+      },
+    },
+  ];
+
+  const layerStack2 = [
+    {
+      id: 'zipcodesLine',
+      source: 'zipcodes',
+      type: 'line',
+      paint: {
+        'line-color': 'darkred',
+        'line-width': 0, // 0.5,
+      },
+    },
+  ];
+
+
 
   // Process dimensions
   dimensions.forEach(function (dim) {
@@ -435,7 +654,6 @@ function mapBoxInit() {
       hash: false,
     });
     d3.select('#message').text('Created map...');
-
 
     // Add controls to the map, and event handler
     map.addControl(new mapboxgl.Navigation());
@@ -551,13 +769,13 @@ function mapBoxInit() {
       .style('margin-left', `${(legendMarginLeft - 3)}px`)
       .text('Legend');
 
-    /*
+
     const svg = legendDiv.append('svg')
       .attr('width', legendSvgWidth)
       .attr('height', legendSvgHeight)
       .attr('id', container + 'LegendSvg')
       .append('g');
-    */
+
 
     // If dimensions array is passed in, then select elem to allow choice of data series
     if (dims) {
@@ -774,241 +992,33 @@ function mapBoxInit() {
   d = dimensions[1];
 
   d3.select('#message').text('Initializing second map panel...');
-  const map2 = initMap('map2', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList);
+  map2 = initMap('map2', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList);
   // window.secondMap = map;
   updateLegend('map2', d);
 
-  d3.select('#message').text('Loading map layers...')
+  d3.select('#message').text('Loading map layers...');
   d3.select('#contrastRange').property('value', d.gamma * 100);
   d3.select('#contrastText').text(fmt(d.gamma * 100));
   d3.select('#opacityRange').property('value', d.opacity * 100);
   d3.select('#opacityText').text(fmt(d.opacity * 100));
 
-  var updateMainContrast = function() {
-    var d = dimensions[0];
+  function updateMainContrast() {
+    const d = dimensions[0];
     d.gamma = currGamma;
-    d3.range(bins).forEach(function(p) {
-      var layerId = 'dataLayer' + p;
+    d3.range(bins).forEach(function (p) {
+      // const layerId = 'dataLayer' + p;
+      const layerId = `dataLayer${p}`;
+
       // map.setFilter(layerId, d.filters[p])
       // map.setPaintProperty(layerId, 'fill-color', d.color);
-      var gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins;
+      const gammaArg = d.inverse
+        ? (bins - p + 1) / bins
+        : (p + 1) / bins;
       map.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
-    })
-
-    // Update legend
-    updateLegend('map', d)
-  }
-
-  var currDim = 1;
-  var setDimension = function(dim, g, o, c) {
-    var d = dimensions[dim];
-    if (g != undefined) {
-      d.gamma = +g;
-      currGamma = d.gamma;
-    }
-    if (o != undefined) d.opacity = +o
-    if (c != undefined) d.color = c;
-    currDim = dim;
-    d.gamma = currGamma;
-
-    d3.range(bins).forEach(function(p) {
-      var layerId = 'dataLayer' + p;
-      map2.setFilter(layerId, d.filters[p])
-      map2.setPaintProperty(layerId, 'fill-color', d.color);
-      var gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins;
-      map2.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
-    })
-
-    d3.select('#map2Title > .header').text(d.title);
-    d3.select('#contrastRange').property('value', d.gamma * 100);
-    d3.select('#contrastText').text(fmt(d.gamma * 100));
-    d3.select('#opacityRange').property('value', d.opacity * 100);
-    d3.select('#opacityText').text(fmt(d.opacity * 100));
-
-    // Update legend
-    updateLegend('map2', d)
-  }
-
-  function getDimension() {
-    return currDim;
-  }
-
-  // Updates the legend with colors, opacities and threshold text
-  function updateLegend(map, dim) {
-    const data = d3.range(bins).map(function(e, i) {
-      let obj = {};
-      obj.color = dim.color;
-      // let gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins;
-      const gammaArg = (i + 1) / bins;
-      obj.opacity = calcGamma(gammaArg, dim.gamma) * dim.opacity;
-      obj.value = dim.dist[i];
-      obj.preUnit = dim.preUnit;
-      obj.postUnit = dim.postUnit;
-      obj.fmt = dim.fmt;
-      obj.divide = dim.divide;
-      obj.inverse = dim.inverse;
-      return obj;
     });
 
-    const tickData = data.slice();
-    tickData.push({ last: true, value: dim.range[1], preUnit: dim.preUnit, postUnit: dim.postUnit, fmt: dim.fmt, divide: dim.divide, inverse: dim.inverse })
-    if (dim.inverse) tickData.reverse();
-
-    // var svg = d3.select('#' + map + 'LegendSvg').select('g')
-    const svg = d3.select(`#${map}LegendSvg`).select('g');
-
-    // Append opaque background
-    svg.selectAll('.backgroundRect')
-      .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: 'white', opacity: 1 }])
-      .enter().append('rect')
-      .attr('class', 'backgroundRect')
-      .attr('width', function (d) { return d.width; })
-      .attr('height', function (d) { return d.height; })
-      .attr('x', function (d) { return d.x; })
-      .attr('y', function (d) { return d.y; })
-      .style('fill', function (d) { return d.color; })
-      .style('opacity', function (d) { return d.opacity; });
-
-    const boxes = svg.selectAll('.foregroundRect')
-      .data(data);
-
-    boxes
-      .enter().append('rect')
-      .attr('class', 'foregroundRect')
-      .attr('width', legendElemWidth)
-      .attr('height', legendElemHeight)
-      .attr('x', legendMarginLeft)
-      .attr('y', function (d, i) { return legendMarginTop + i * legendElemHeight; })
-      .style('stroke', 'gray');
-
-    boxes
-      .style('fill', function(d) { return d.color; })
-      .style('opacity', function(d) { return d.opacity + 0.0001; });
-
-
-    const ticks = svg.selectAll('.leftTick')
-      .data(tickData)
-      .enter().append('line')
-      .attr('class', 'leftTick')
-      .attr('x1', legendMarginLeft - 5)
-      .attr('x2', legendMarginLeft + legendElemWidth + 5)
-      .attr('y1', function (d, i) { return legendMarginTop + i * legendElemHeight; })
-      .attr('y2', function (d, i) { return legendMarginTop + i * legendElemHeight; })
-      .style('stroke', 'gray');
-
-    const leftScale = svg.selectAll('.leftScale')
-      .data(tickData)
-      .enter().append('text')
-      .attr('class', 'leftScale')
-      .attr('x', legendMarginLeft - 6)
-      .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
-      .text(function (d, i) {
-        // return dim.inverse ? (bins - i) * 10 + '%' : i * 10 + '%';
-        // return i * 10 + '%';
-        // return (bins - i) / bins * 100 + '%'
-        // return i / bins * 100 + '%'
-        return `${i / bins * 100}%`;
-      })
-      .attr('text-anchor', 'end')
-      .style('font-size', '10px');
-
-    const rightScale = svg.selectAll('.rightScale')
-      .data(tickData);
-
-    rightScale
-      .enter()
-      .append('text')
-      .attr('class', 'rightScale');
-
-    rightScale
-      .attr('x', legendMarginLeft + legendElemWidth + 6)
-      .attr('y', function (d, i) {
-        return legendMarginTop + 3 + i * legendElemHeight;
-      })
-      .text(function (d) { return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit; })
-      .attr('text-anchor', 'start')
-      .style('font-size', '10px');
-
-    svg.selectAll('.leftLegendTitle')
-        .data([{ text: 'Percentiles', rotate: '270' }])
-      .enter().append('text')
-        .attr('class', 'leftLegendTitle')
-        .style('text-anchor', 'middle')
-        .attr('transform', 'rotate(270)')
-        .attr('x', function() {
-          return -legendSvgHeight / 2;
-        })
-        .attr('y', 12)
-        .style('font-weight', 'bold')
-        .text('Percentiles');
-
-    svg.selectAll('.rightLegendTitle')
-        .data([{ text: 'Thresholds', rotate: '90' }])
-      .enter().append('text')
-        .attr('class', 'rightLegendTitle')
-        .style('text-anchor', 'middle')
-        .attr('transform', 'rotate(90)')
-        .attr('x', function() {
-          return legendSvgHeight / 2;
-        })
-        .attr('y', -115)
-        .style('font-weight', 'bold')
-        .text('Thresholds');
-
-    svg.selectAll('.percentileTracker')
-        .data([{ radius: 4, percentile: 3 }])
-      .enter().append('circle')
-        .attr('class', 'percentileTracker')
-        .attr('cx', (legendMarginLeft + legendElemWidth / 2))
-        .attr('cy', function(d) { return d.percentile * legendElemHeight + 1 })
-        .attr('r', function(d) { return d.radius })
-        .style('fill', 'black')
-  }
-
-  function updatePercentileMarker(zipCode) {
-    let idx = -1;
-    let idx2 = -1;
-    let inverse = false;
-    let inverse2 = false;
-
-    if (zipCode === '') {
-      // console.log('remove')
-    } else {
-      const data = zipData[zipCode];
-      if (data) {
-        // Handle map (dim 0)
-        let dim = dimensions[0];
-        let value = data[dim.prop];
-        let { dist } = dim;
-
-        dist.some(function (d) {
-          if (d > value) return true;
-          idx++;
-        });
-        inverse = dim.inverse;
-
-        // Handle map2
-        dim = dimensions[getDimension()];
-        value = data[dim.prop];
-        dist = dim.dist;
-        dist.some(function (d) {
-          if (d > value) return true;
-          idx2++;
-        });
-        inverse2 = dim.inverse;
-        // console.log('percentile2: ' + idx2)
-      }
-    }
-
-    // Set the marker
-    setPercentileMarker('map', idx, inverse);
-    setPercentileMarker('map2', idx2, inverse2);
-  }
-
-  function setPercentileMarker(map, percentile, inverse) {
-    let pos = percentile === -1 ? -100 : inverse ? (bins - percentile) * legendElemHeight : (percentile + 1) * legendElemHeight;
-    d3.select('#' + map + 'LegendSvg').select('g').select('.percentileTracker')
-      .attr('cy', function () { return pos; });
+    // Update legend
+    updateLegend('map', d);
   }
 
   // Init percentile markers
@@ -1018,10 +1028,10 @@ function mapBoxInit() {
   let disable = false;
   map.on('move', function () {
     if (!disable) {
-      let center = map.getCenter();
-      let zoom = map.getZoom();
-      let pitch = map.getPitch();
-      let bearing = map.getBearing();
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      const pitch = map.getPitch();
+      const bearing = map.getBearing();
       // console.log(center, zoom, pitch, bearing)
 
       disable = true;
@@ -1035,10 +1045,10 @@ function mapBoxInit() {
 
   map2.on('move', function () {
     if (!disable) {
-      let center = map2.getCenter();
-      let zoom = map2.getZoom();
-      let pitch = map2.getPitch();
-      let bearing = map2.getBearing();
+      const center = map2.getCenter();
+      const zoom = map2.getZoom();
+      const pitch = map2.getPitch();
+      const bearing = map2.getBearing();
 
       disable = true;
       map.setCenter(center);
@@ -1068,23 +1078,6 @@ function mapBoxInit() {
   d3.select('#tiltSlider').on('change', function () { tiltSlider.call(this); });
   d3.select('#tiltSlider').on('input',  function () { tiltSlider.call(this); });
 
-
-  // Manages the side panel
-  function manageSidePanel(data) {
-    const controls = d3.select('#controls');
-
-    // Remove current elements
-    controls.selectAll('p').remove();
-
-    // Add new p elements
-    controls.selectAll('p')
-      .data(data)
-      .enter().append('p')
-      .html(function (d) { return d; });
-
-    setOverlayPos();
-  }
-
   // Establish handler for the 'how to use' div
   d3.select('#howToUse').on('click', function () {
     let state = d3.select('#instructions').style('display');
@@ -1110,116 +1103,133 @@ function mapBoxInit() {
 
     setOverlayPos();
   });
-
-
-  function mouseMove(container, e) {
-    const fmtPct = d3.format(',.1%');
-    const fmtInt = d3.format(',d');
-    const fmtFloat = d3.format('.1f');
-
-    // console.log('container', container);
-    const t = container === 'map'
-      ? { tracker: 'map2', noTracker: 'map' }
-      : { tracker: 'map', noTracker: 'map2' };
-
-    // d3.select('#' + t.tracker + 'Tracker').style('left', e.point.x + 'px').style('top', e.point.y + 'px');
-    d3.select(`#${t.tracker}Tracker`)
-      .style('left', `${e.point.x}px`)
-      .style('top', `${e.point.y}px`);
-
-    // d3.select('#' + t.noTracker + 'Tracker').style('left', '-40px').style('top', '-40px')
-    d3.select(`#${t.noTracker}Tracker`)
-      .style('left', '-40px')
-      .style('top', '-40px');
-
-    map.featuresAt(e.point, { radius: 5 }, function (error, features) {
-      if (error) throw error;
-      if (features.length === 0) return;
-
-      // Separate county and zip code entries in the features array
-      // const countyInfo = features.filter(function (d) { if (d.properties.ALAND !== undefined) return true; });
-      // const countyInfo = features.filter(function (d) { return d.properties.ALAND !== undefined; });
-      const countyInfo = features.filter((d) => d.properties.ALAND !== undefined);
-
-
-      // const zipInfo = features.filter(function (d) { if (d.properties.City !== undefined) return true; });
-      // const zipInfo = features.filter(function (d) { return d.properties.City !== undefined; });
-      const zipInfo = features.filter((d) => d.properties.City !== undefined);
-
-      // Clear properties
-      const item = {
-        County: '',
-        ZipCode: '',
-        Places: '',
-        FTAFTPS100: '',
-        City: '',
-        povrate: '',
-        Pop15Plus: '',
-        IncK: '',
-        Black: '',
-        Hisp: '',
-        Asian: '',
-        White: '',
-      };
-
-      // Obtain county name from first item in county array
-      if (countyInfo.length > 0) {
-        item.County = countyInfo[0].properties.NAME;
-      }
-
-      // Obtain zip code info from first item in zip code array
-      if (zipInfo.length > 0) {
-        item.ZipCode =    zipInfo[0].properties.zip;
-        item.Places =     zipInfo[0].properties.Places;
-        item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
-        item.City =       zipInfo[0].properties.City;
-        item.povrate =    zipInfo[0].properties.povrate;
-        item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
-        item.IncK =       zipInfo[0].properties.IncK;
-        item.Black =      zipInfo[0].properties.Black;
-        item.Hisp =       zipInfo[0].properties.Hisp;
-        item.Asian =      zipInfo[0].properties.Asian;
-        item.White =      zipInfo[0].properties.WhiteNH;
-      }
-
-      // Set the text in the overlay panel
-      /*
-      var text = [
-        'Zip Code: <b>' + item.ZipCode + '</b>',
-        'Place: <b>' + item.Places + '</b>',
-        'County: <b>' + item.County + '</b>',
-        'Suspensions: <b>' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
-        'Poverty Rate: <b>' + fmtPct(item.povrate / 100) + '</b>',
-        'Population 15y+: <b>' + fmtInt(item.Pop15Plus) + '</b>',
-        'Avg Income: <b>' + fmtFloat('' + item.IncK) + 'K</b>',
-        'Black: <b>' + fmtPct('' + item.Black / 100) + '</b>',
-        'Hispanic: <b>' + fmtPct('' + item.Hisp / 100) + '</b>',
-        'Asian: <b>' + fmtPct('' + item.Asian / 100) + '</b>',
-        'White: <b>' + fmtPct('' + item.White / 100) + '</b>'
-      ];
-      */
-      // console.log('item', item)
-      const text = [
-        '<b>Location: </b>' +
-            ' <b>' + item.Places + '</b>' +
-            ' Zip: ' + item.ZipCode +
-            ' (' + item.County + ' County)',
-        '<b>DL. Suspension Rate: ' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
-        '<b>Poverty Rate: ' + fmtPct(item.povrate / 100) + '</b>',
-        '<b>Population 15y+: ' + fmtInt(item.Pop15Plus) + '</b>',
-        '<b>Avg Income: $' + fmtFloat('' + item.IncK) + 'K</b>',
-        '<b>Racial composition: </b>' +
-            ' Black: ' + fmtPct('' + item.Black / 100) +
-            ' Lat: ' +  fmtPct('' + item.Hisp  / 100) +
-            ' Asian: ' + fmtPct('' + item.Asian / 100) +
-            ' White: ' + fmtPct('' + item.White / 100)
-      ];
-
-      // Update panel
-      manageSidePanel(text);
-
-      // Update percentile marker
-      updatePercentileMarker(item.ZipCode);
-    });
-  }
 }
+
+function start() {
+  // Load zip code data
+  d3.tsv(zipData, function (_) {
+    zipGeo = _;
+
+    // Create object for quick lookup of a county's zip codes (used by code that dynamically
+    // injects zip code geometry)
+    countyZips = {};
+    zipGeo.forEach(function (d) {
+      const key = d.County.trim();
+      if (countyZips[key] === undefined) countyZips[key] = [];
+      countyZips[key].push(+d.ZipCode);
+    });
+
+    // Create data structure used to merge zip code and suspension data
+    const obj = {};
+    zipGeo.forEach(function (d) {
+      const key = d.ZipCode.trim();
+      obj[key] = d;
+      delete obj[key].ZipCode;
+    });
+    zipGeo = obj; // Redefine zipGeo from array to object
+    // console.log('zipGeo', zipGeo)
+
+    // Load driver license suspension data
+    d3.select('#message', 'Loading driver license suspension data...');
+    d3.tsv(suspData, function (suspensions) {
+      console.log('loaded driver license suspension data...');
+
+      // Merge in the zip geo data and create main data structure
+      data = suspensions.map(function (d) {
+        const zipData = zipGeo[d.ZipCode];
+        Object.keys(zipData).forEach(function (prop) { d[prop] = zipData[prop]; });
+        return d;
+      });
+
+      // Convert to numbers
+      data.forEach(function (d) {
+        const props = Object.keys(d);
+        props.forEach(function (prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; });
+      });
+
+      // Sort data in ascending order (so highest suspension rates are drawn last and on top of
+      // the stack)
+      data.sort(function (a, b) {
+        return a.FTAFTPS100 - b.FTAFTPS100;
+      });
+
+      // Create data structure for quick lookup (used by zip code geometry event handler)
+      zipData = {};
+      data.forEach(function (d) {
+        zipData[d.ZipCode] = d;
+      });
+      // console.log('zipData', zipData)
+
+      // Load county geometry
+      d3.select('#message').text('Loading county boundary data...');
+      d3.json(countyTopo, function (error, county) {
+        counties = topojson.feature(county, county.objects.CaliforniaCounty);
+        console.log('loaded county info...');
+
+        // Load zip code geometry
+        d3.select('#message').text('Loading zip code boundary data...');
+        d3.json(zipTopo, function (error, zip) {
+          zipcodes = topojson.feature(zip, zip.objects.zip);
+          console.log('loaded zip code geo json file...');
+
+          const caZipCodeMin = 90001;
+          const caZipCodeMax = 96162;
+          zipcodes.features = zipcodes.features.filter(function (item) {
+            // if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
+            return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
+          });
+          // console.log('number of zipcodes: ', zipcodes.features.length)
+          // console.log('zipcodes', zipcodes);
+
+          const nodataZipCodes = [];
+          // let undefCount = 0;
+          zipcodes.features.forEach(function (d) {
+            d.properties.zip = +d.properties.zip;
+            const zipCode = d.properties.zip;
+
+            if (zipData[zipCode] === undefined) {
+              nodataZipCodes.push(zipCode);
+              // var zipGeoItem = zipGeo[zipCode];
+              d.properties.noData = true;
+            } else {
+              d.properties.noData = false;
+              d.properties.ZipCode = zipData[d.properties.zip].ZipCode;
+              d.properties.Places = zipData[d.properties.zip].Places;
+              d.properties.City = zipData[d.properties.zip].City;
+              d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
+              d.properties.povrate = zipData[d.properties.zip].povrate;
+              d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
+              d.properties.IncK = zipData[d.properties.zip].IncK;
+              d.properties.Black = zipData[d.properties.zip].Black;
+              d.properties.Hisp = zipData[d.properties.zip].Hisp;
+              d.properties.WhiteNH = zipData[d.properties.zip].WhiteNH;
+              d.properties.Asian = zipData[d.properties.zip].Asian;
+            }
+          });
+
+          // console.log('nodataZipCodes: ', nodataZipCodes)
+          console.log('Zip codes with no data: ', nodataZipCodes.length);
+
+          zipcodes.features = zipcodes.features.filter(function (d) {
+            /*
+            if (d.properties.noData) return false;
+            else return true;
+            */
+            return !d.properties.noData;
+          });
+          // console.log('zipcodes.features.length: ', zipcodes.features)
+          console.log('Zip codes with data: ', zipcodes.features.length);
+
+          if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
+          else mapBoxInit();
+        });
+      });
+    });
+  });
+}
+
+window.onload = function () { start(); };
+window.onresize = function () { setWindowSize(); };
+
+setWindowSize();
+setOverlayPos();
