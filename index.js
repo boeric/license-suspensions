@@ -302,8 +302,8 @@ function updateLegend(map, dim) {
 
   rightScale
     .attr('x', legendMarginLeft + legendElemWidth + 6)
-    .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
-    .text(function (d) { return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit; })
+    .attr('y', (d, i) => (legendMarginTop + 3 + i * legendElemHeight))
+    .text((d) => (d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit))
     .attr('text-anchor', 'start')
     .style('font-size', '10px');
 
@@ -313,7 +313,7 @@ function updateLegend(map, dim) {
     .attr('class', 'leftLegendTitle')
     .style('text-anchor', 'middle')
     .attr('transform', 'rotate(270)')
-    .attr('x', function () { return -legendSvgHeight / 2; })
+    .attr('x', () => (-legendSvgHeight / 2))
     .attr('y', 12)
     .style('font-weight', 'bold')
     .text('Percentiles');
@@ -324,7 +324,7 @@ function updateLegend(map, dim) {
     .attr('class', 'rightLegendTitle')
     .style('text-anchor', 'middle')
     .attr('transform', 'rotate(90)')
-    .attr('x', function () { return legendSvgHeight / 2; })
+    .attr('x', () => (legendSvgHeight / 2))
     .attr('y', -115)
     .style('font-weight', 'bold')
     .text('Thresholds');
@@ -334,8 +334,8 @@ function updateLegend(map, dim) {
     .enter().append('circle')
     .attr('class', 'percentileTracker')
     .attr('cx', (legendMarginLeft + legendElemWidth / 2))
-    .attr('cy', function (d) { return d.percentile * legendElemHeight + 1; })
-    .attr('r', function (d) { return d.radius; })
+    .attr('cy', (d) => (d.percentile * legendElemHeight + 1))
+    .attr('r',  (d) => (d.radius))
     .style('fill', 'black');
 }
 
@@ -351,8 +351,7 @@ function setDimension(dim, g, o, c) {
   currDim = dim;
   d.gamma = currGamma;
 
-  d3.range(bins).forEach(function (p) {
-    // const layerId = 'dataLayer' + p;
+  d3.range(bins).forEach((p) => {
     const layerId = `dataLayer${p}`;
     map2.setFilter(layerId, d.filters[p]);
     map2.setPaintProperty(layerId, 'fill-color', d.color);
@@ -385,7 +384,7 @@ function setPercentileMarker(map, percentile, inverse) {
   d3.select(`#${map}LegendSvg`)
     .select('g')
     .select('.percentileTracker')
-    .attr('cy', function () { return pos; });
+    .attr('cy', () => pos);
 }
 
 function updatePercentileMarker(zipCode) {
@@ -404,9 +403,12 @@ function updatePercentileMarker(zipCode) {
       let value = data[dim.prop];
       let { dist } = dim;
 
-      dist.some(function (d) {
-        if (d > value) return true;
+      dist.some((d) => {
+        if (d > value) {
+          return true;
+        }
         idx++;
+        return false;
       });
       inverse = dim.inverse;
 
@@ -414,12 +416,14 @@ function updatePercentileMarker(zipCode) {
       dim = dimensions[getDimension()];
       value = data[dim.prop];
       dist = dim.dist;
-      dist.some(function (d) {
-        if (d > value) return true;
+      dist.some((d) => {
+        if (d > value) {
+          return true;
+        }
         idx2++;
+        return false;
       });
       inverse2 = dim.inverse;
-      // console.log('percentile2: ' + idx2)
     }
   }
 
@@ -439,7 +443,7 @@ function manageSidePanel(data) {
   controls.selectAll('p')
     .data(data)
     .enter().append('p')
-    .html(function (d) { return d; });
+    .html((d) => d);
 
   setOverlayPos();
 }
@@ -455,12 +459,10 @@ function mouseMove(container, e) {
     ? { tracker: 'map2', noTracker: 'map' }
     : { tracker: 'map', noTracker: 'map2' };
 
-  // d3.select('#' + t.tracker + 'Tracker').style('left', e.point.x + 'px').style('top', e.point.y + 'px');
   d3.select(`#${t.tracker}Tracker`)
     .style('left', `${e.point.x}px`)
     .style('top', `${e.point.y}px`);
 
-  // d3.select('#' + t.noTracker + 'Tracker').style('left', '-40px').style('top', '-40px')
   d3.select(`#${t.noTracker}Tracker`)
     .style('left', '-40px')
     .style('top', '-40px');
@@ -572,9 +574,7 @@ function flyTo(target) {
 
     // This can be any easing function: it takes a number between
     // 0 and 1 and returns another number between 0 and 1
-    easing: function (t) {
-      return t;
-    },
+    easing: (t) => t,
   });
 }
 
@@ -583,32 +583,30 @@ function fly(idx) {
 }
 
 function rangeContrastEvent() {
-  const elem = d3.select(this)
-  const value = elem.property('value')
-  // console.log('value', value)
+  const elem = d3.select(this);
+  const value = elem.property('value');
   d3.select('#contrastText').text(fmt(value));
 
   const dim = getDimension();
-  setDimension(dim, value / 100)
+  setDimension(dim, value / 100);
 }
 
 function rangeOpacityEvent() {
-  const elem = d3.select(this)
-  const value = elem.property('value')
+  const elem = d3.select(this);
+  const value = elem.property('value');
   d3.select('#opacityText').text(value);
 
   const dim = getDimension();
   const d = dimensions[dim];
   d.opacity = value / 100;
 
-  setDimension(dim, d.gamma, d.opacity, d.color)
+  setDimension(dim, d.gamma, d.opacity, d.color);
 }
 
 function updateMainContrast() {
   const d = dimensions[0];
   d.gamma = currGamma;
-  d3.range(bins).forEach(function (p) {
-    // const layerId = 'dataLayer' + p;
+  d3.range(bins).forEach((p) => {
     const layerId = `dataLayer${p}`;
 
     // map.setFilter(layerId, d.filters[p])
@@ -624,7 +622,6 @@ function updateMainContrast() {
 }
 
 function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
-  // d3.select('#message').text('Initializing map in container: ' + container + '...')
   d3.select('#message').text(`Initializing map in container: ${container}...`);
   /*
   console.log('container', container)
@@ -656,9 +653,9 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   }
 
   const layers = [];
-  layerStack0.forEach(function (d) { layers.push(d); });
-  dataLayers.forEach(function (d)  { layers.push(d); });
-  layerStack2.forEach(function (d) { layers.push(d); });
+  layerStack0.forEach((d) => { layers.push(d); });
+  dataLayers.forEach((d) => { layers.push(d); });
+  layerStack2.forEach((d) => { layers.push(d); });
 
   // Init the map
   d3.select('#message').text('Creating map...');
@@ -677,13 +674,13 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
 
   // Add controls to the map, and event handler
   map.addControl(new mapboxgl.Navigation());
-  d3.selectAll('.mapboxgl-ctrl-compass').on('click', function () {
+  d3.selectAll('.mapboxgl-ctrl-compass').on('click', () => {
     d3.select('#tiltSlider').property('value', 0);
   });
 
-  map.on('load', function () {
+  map.on('load', () => {
     loader.className = 'done';
-    setTimeout(function () {
+    setTimeout(() => {
       loader.className = 'hide';
     }, 500);
 
@@ -695,7 +692,7 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   });
 
   // Load the counties and zipcode layers at style.load event
-  map.on('style.load', function () {
+  map.on('style.load', () => {
     // console.log('style.load...')
     d3.select('#message').text('Adding data layers...');
 
@@ -712,7 +709,7 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
     });
 
     // Add the zip code layers
-    layers.forEach(function (d, i) {
+    layers.forEach((d, i) => {
       d3.select('#message').text(`Adding layer: ${i}'...`);
       map.addLayer(d);
     });
@@ -742,7 +739,7 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
     .style('border-radius', '50%');
 
   // Remove zip code area border when zoomed out
-  map.on('zoom', function () {
+  map.on('zoom', () => {
     const zoom = map.getZoom();
     if (zoom < 9) {
       map.setPaintProperty('zipcodesLine', 'line-width', 0);
