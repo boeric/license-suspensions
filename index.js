@@ -1,7 +1,7 @@
 /* eslint-disable
   no-console,
   no-multi-spaces,
-  func-names,
+  func-names1,
   object-curly-newline,
   prefer-arrow-callback,
   no-param-reassign,
@@ -189,9 +189,7 @@ function setOverlayPos() {
   const main = d3.select('#main');
   const height = main.node().offsetHeight;
 
-  main.style('top', function () {
-    return `${Math.max(10, window.innerHeight - height - 25)}px`;
-  });
+  main.style('top', () => `${Math.max(10, window.innerHeight - height - 25)}px`);
 }
 
 // Window resize handler
@@ -210,7 +208,7 @@ function calcGamma(val, gamma) {
 
 // Updates the legend with colors, opacities and threshold text
 function updateLegend(map, dim) {
-  const data = d3.range(bins).map(function(e, i) {
+  const data = d3.range(bins).map((e, i) => {
     const obj = {};
     obj.color = dim.color;
     // let gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins;
@@ -222,6 +220,7 @@ function updateLegend(map, dim) {
     obj.fmt = dim.fmt;
     obj.divide = dim.divide;
     obj.inverse = dim.inverse;
+
     return obj;
   });
 
@@ -252,15 +251,14 @@ function updateLegend(map, dim) {
     }])
     .enter().append('rect')
     .attr('class', 'backgroundRect')
-    .attr('width', function (d) { return d.width; })
-    .attr('height', function (d) { return d.height; })
-    .attr('x', function (d) { return d.x; })
-    .attr('y', function (d) { return d.y; })
-    .style('fill', function (d) { return d.color; })
-    .style('opacity', function (d) { return d.opacity; });
+    .attr('width', (d) => d.width)
+    .attr('height', (d) => d.height)
+    .attr('x', (d) => d.x)
+    .attr('y', (d) => d.y)
+    .style('fill', (d) => d.color)
+    .style('opacity', (d) => d.opacity);
 
-  const boxes = svg.selectAll('.foregroundRect')
-    .data(data);
+  const boxes = svg.selectAll('.foregroundRect').data(data);
 
   boxes
     .enter().append('rect')
@@ -268,12 +266,12 @@ function updateLegend(map, dim) {
     .attr('width', legendElemWidth)
     .attr('height', legendElemHeight)
     .attr('x', legendMarginLeft)
-    .attr('y', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+    .attr('y', (d, i) => (legendMarginTop + i * legendElemHeight))
     .style('stroke', 'gray');
 
   boxes
-    .style('fill', function (d) { return d.color; })
-    .style('opacity', function (d) { return d.opacity + 0.0001; });
+    .style('fill', (d) => d.color)
+    .style('opacity', (d) => (d.opacity + 0.0001));
 
   svg.selectAll('.leftTick')
     .data(tickData)
@@ -281,8 +279,8 @@ function updateLegend(map, dim) {
     .attr('class', 'leftTick')
     .attr('x1', legendMarginLeft - 5)
     .attr('x2', legendMarginLeft + legendElemWidth + 5)
-    .attr('y1', function (d, i) { return legendMarginTop + i * legendElemHeight; })
-    .attr('y2', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+    .attr('y1', (d, i) => (legendMarginTop + i * legendElemHeight))
+    .attr('y2', (d, i) => (legendMarginTop + i * legendElemHeight))
     .style('stroke', 'gray');
 
   svg.selectAll('.leftScale')
@@ -290,8 +288,8 @@ function updateLegend(map, dim) {
     .enter().append('text')
     .attr('class', 'leftScale')
     .attr('x', legendMarginLeft - 6)
-    .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
-    .text(function (d, i) { return `${(i / bins) * 100}%`; })
+    .attr('y', (d, i) => (legendMarginTop + 3 + i * legendElemHeight))
+    .text((d, i) => `${(i / bins) * 100}%`)
     .attr('text-anchor', 'end')
     .style('font-size', '10px');
 
