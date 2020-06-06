@@ -16,12 +16,14 @@
 */
 /* global d3, mapboxgl, topojson */
 
+
+// Variables
 const dataSet = window.location.search.indexOf('dataFile=2015') !== -1 ? 'old' : 'new';
 let zipData = 'cazipgeo.txt';
 const suspData = dataSet === 'old' ? 'suspensions.txt' : 'suspensions2016.txt';
 const countyTopo = 'county4.json';
 const zipTopo = 'ziptopo6.json';
-let povDist;
+// let povDist;
 let counties;
 let zipcodes;
 let data;
@@ -31,6 +33,7 @@ let map;
 let map2;
 const bins = 10;
 let currGamma = 0.15;
+let currDim = 1;
 const legendElemWidth = 35;
 const legendElemHeight = 18; // 13;
 const legendSvgHeight = bins * legendElemHeight + 20;
@@ -38,7 +41,7 @@ const legendSvgWidth = 128;
 const legendMarginLeft = 47;
 const legendMarginTop = 10;
 const fmt = d3.format('.0f');
-const fmt1 = d3.format('.1f');
+// const fmt1 = d3.format('.1f');
 const fmtP = d3.format(',.2p');
 const targets = [
   { name: 'SF Bay Area', location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
@@ -144,19 +147,8 @@ const dimensions = [
   },
 ];
 
-
-
-
-
-
-
-
-
-
-
-
 const loader = document.getElementById('loader');
-loader.className = '';
+
 
 function setOverlayPos() {
   const main = d3.select('#main');
@@ -178,41 +170,6 @@ function setWindowSize() {
 
 function calcGamma(val, gamma) {
   return Math.pow(val, (1 / gamma));
-}
-
-let currDim = 1;
-function setDimension(dim, g, o, c) {
-  const d = dimensions[dim];
-  if (g !== undefined) {
-    d.gamma = +g;
-    currGamma = d.gamma;
-  }
-  if (o !== undefined) d.opacity = +o;
-  if (c !== undefined) d.color = c;
-  currDim = dim;
-  d.gamma = currGamma;
-
-  d3.range(bins).forEach(function (p) {
-    // const layerId = 'dataLayer' + p;
-    const layerId = `dataLayer${p}`;
-    map2.setFilter(layerId, d.filters[p]);
-    map2.setPaintProperty(layerId, 'fill-color', d.color);
-    const gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins;
-    map2.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
-  });
-
-  d3.select('#map2Title > .header').text(d.title);
-  d3.select('#contrastRange').property('value', d.gamma * 100);
-  d3.select('#contrastText').text(fmt(d.gamma * 100));
-  d3.select('#opacityRange').property('value', d.opacity * 100);
-  d3.select('#opacityText').text(fmt(d.opacity * 100));
-
-  // Update legend
-  updateLegend('map2', d);
-}
-
-function getDimension() {
-  return currDim;
 }
 
 // Updates the legend with colors, opacities and threshold text
@@ -249,7 +206,14 @@ function updateLegend(map, dim) {
 
   // Append opaque background
   svg.selectAll('.backgroundRect')
-    .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: 'white', opacity: 1 }])
+    .data([{
+      width: legendElemWidth,
+      height: legendElemHeight * bins,
+      x: legendMarginLeft,
+      y: legendMarginTop,
+      color: 'white',
+      opacity: 1,
+    }])
     .enter().append('rect')
     .attr('class', 'backgroundRect')
     .attr('width', function (d) { return d.width; })
@@ -291,18 +255,11 @@ function updateLegend(map, dim) {
     .attr('class', 'leftScale')
     .attr('x', legendMarginLeft - 6)
     .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
-    .text(function (d, i) {
-      // return dim.inverse ? (bins - i) * 10 + '%' : i * 10 + '%';
-      // return i * 10 + '%';
-      // return (bins - i) / bins * 100 + '%'
-      // return i / bins * 100 + '%'
-      return `${i / bins * 100}%`;
-    })
+    .text(function (d, i) { return `${(i / bins) * 100}%`; })
     .attr('text-anchor', 'end')
     .style('font-size', '10px');
 
-  const rightScale = svg.selectAll('.rightScale')
-    .data(tickData);
+  const rightScale = svg.selectAll('.rightScale').data(tickData);
 
   rightScale
     .enter()
@@ -311,9 +268,7 @@ function updateLegend(map, dim) {
 
   rightScale
     .attr('x', legendMarginLeft + legendElemWidth + 6)
-    .attr('y', function (d, i) {
-      return legendMarginTop + 3 + i * legendElemHeight;
-    })
+    .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
     .text(function (d) { return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit; })
     .attr('text-anchor', 'start')
     .style('font-size', '10px');
@@ -348,6 +303,41 @@ function updateLegend(map, dim) {
     .attr('cy', function (d) { return d.percentile * legendElemHeight + 1; })
     .attr('r', function (d) { return d.radius; })
     .style('fill', 'black');
+}
+
+
+function setDimension(dim, g, o, c) {
+  const d = dimensions[dim];
+  if (g !== undefined) {
+    d.gamma = +g;
+    currGamma = d.gamma;
+  }
+  if (o !== undefined) d.opacity = +o;
+  if (c !== undefined) d.color = c;
+  currDim = dim;
+  d.gamma = currGamma;
+
+  d3.range(bins).forEach(function (p) {
+    // const layerId = 'dataLayer' + p;
+    const layerId = `dataLayer${p}`;
+    map2.setFilter(layerId, d.filters[p]);
+    map2.setPaintProperty(layerId, 'fill-color', d.color);
+    const gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins;
+    map2.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
+  });
+
+  d3.select('#map2Title > .header').text(d.title);
+  d3.select('#contrastRange').property('value', d.gamma * 100);
+  d3.select('#contrastText').text(fmt(d.gamma * 100));
+  d3.select('#opacityRange').property('value', d.opacity * 100);
+  d3.select('#opacityText').text(fmt(d.opacity * 100));
+
+  // Update legend
+  updateLegend('map2', d);
+}
+
+function getDimension() {
+  return currDim;
 }
 
 function setPercentileMarker(map, percentile, inverse) {
@@ -577,8 +567,6 @@ function mapBoxInit() {
     },
   ];
 
-
-
   // Process dimensions
   dimensions.forEach(function (dim) {
     // Get range
@@ -791,13 +779,11 @@ function mapBoxInit() {
       .style('margin-left', `${(legendMarginLeft - 3)}px`)
       .text('Legend');
 
-
     const svg = legendDiv.append('svg')
       .attr('width', legendSvgWidth)
       .attr('height', legendSvgHeight)
       .attr('id', container + 'LegendSvg')
       .append('g');
-
 
     // If dimensions array is passed in, then select elem to allow choice of data series
     if (dims) {
@@ -1082,13 +1068,13 @@ function mapBoxInit() {
   });
 
   map.on('drag', function (e) {
-    // console.log('drag -----------e', e)
+    console.log('drag -----------e', e);
   });
   map.on('dragend', function (e) {
-    // console.log('dragend -----------e', e)
+    console.log('dragend -----------e', e);
   });
   map.on('dragstart', function (e) {
-    // console.log('dragstart -----------e', e)
+    console.log('dragstart -----------e', e);
   });
 
   // Map pitch handlers
@@ -1128,130 +1114,132 @@ function mapBoxInit() {
 }
 
 function start() {
-  // Load zip code data
-  d3.tsv(zipData, function (_) {
-    zipGeo = _;
 
-    // Create object for quick lookup of a county's zip codes (used by code that dynamically
-    // injects zip code geometry)
-    countyZips = {};
-    zipGeo.forEach(function (d) {
-      const key = d.County.trim();
-      if (countyZips[key] === undefined) countyZips[key] = [];
-      countyZips[key].push(+d.ZipCode);
-    });
-
-    // Create data structure used to merge zip code and suspension data
-    const obj = {};
-    zipGeo.forEach(function (d) {
-      const key = d.ZipCode.trim();
-      obj[key] = d;
-      delete obj[key].ZipCode;
-    });
-    zipGeo = obj; // Redefine zipGeo from array to object
-    // console.log('zipGeo', zipGeo)
-
-    // Load driver license suspension data
-    d3.select('#message', 'Loading driver license suspension data...');
-    d3.tsv(suspData, function (suspensions) {
-      console.log('loaded driver license suspension data...');
-
-      // Merge in the zip geo data and create main data structure
-      data = suspensions.map(function (d) {
-        const zipData = zipGeo[d.ZipCode];
-        Object.keys(zipData).forEach(function (prop) { d[prop] = zipData[prop]; });
-        return d;
-      });
-
-      // Convert to numbers
-      data.forEach(function (d) {
-        const props = Object.keys(d);
-        props.forEach(function (prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; });
-      });
-
-      // Sort data in ascending order (so highest suspension rates are drawn last and on top of
-      // the stack)
-      data.sort(function (a, b) {
-        return a.FTAFTPS100 - b.FTAFTPS100;
-      });
-
-      // Create data structure for quick lookup (used by zip code geometry event handler)
-      zipData = {};
-      data.forEach(function (d) {
-        zipData[d.ZipCode] = d;
-      });
-      // console.log('zipData', zipData)
-
-      // Load county geometry
-      d3.select('#message').text('Loading county boundary data...');
-      d3.json(countyTopo, function (error, county) {
-        counties = topojson.feature(county, county.objects.CaliforniaCounty);
-        console.log('loaded county info...');
-
-        // Load zip code geometry
-        d3.select('#message').text('Loading zip code boundary data...');
-        d3.json(zipTopo, function (error, zip) {
-          zipcodes = topojson.feature(zip, zip.objects.zip);
-          console.log('loaded zip code geo json file...');
-
-          const caZipCodeMin = 90001;
-          const caZipCodeMax = 96162;
-          zipcodes.features = zipcodes.features.filter(function (item) {
-            // if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
-            return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
-          });
-          // console.log('number of zipcodes: ', zipcodes.features.length)
-          // console.log('zipcodes', zipcodes);
-
-          const nodataZipCodes = [];
-          // let undefCount = 0;
-          zipcodes.features.forEach(function (d) {
-            d.properties.zip = +d.properties.zip;
-            const zipCode = d.properties.zip;
-
-            if (zipData[zipCode] === undefined) {
-              nodataZipCodes.push(zipCode);
-              // var zipGeoItem = zipGeo[zipCode];
-              d.properties.noData = true;
-            } else {
-              d.properties.noData = false;
-              d.properties.ZipCode = zipData[d.properties.zip].ZipCode;
-              d.properties.Places = zipData[d.properties.zip].Places;
-              d.properties.City = zipData[d.properties.zip].City;
-              d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
-              d.properties.povrate = zipData[d.properties.zip].povrate;
-              d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
-              d.properties.IncK = zipData[d.properties.zip].IncK;
-              d.properties.Black = zipData[d.properties.zip].Black;
-              d.properties.Hisp = zipData[d.properties.zip].Hisp;
-              d.properties.WhiteNH = zipData[d.properties.zip].WhiteNH;
-              d.properties.Asian = zipData[d.properties.zip].Asian;
-            }
-          });
-
-          // console.log('nodataZipCodes: ', nodataZipCodes)
-          console.log('Zip codes with no data: ', nodataZipCodes.length);
-
-          zipcodes.features = zipcodes.features.filter(function (d) {
-            /*
-            if (d.properties.noData) return false;
-            else return true;
-            */
-            return !d.properties.noData;
-          });
-          // console.log('zipcodes.features.length: ', zipcodes.features)
-          console.log('Zip codes with data: ', zipcodes.features.length);
-
-          if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
-          else mapBoxInit();
-        });
-      });
-    });
-  });
 }
 
-window.onload = function () { start(); };
+// window.onload = function () { start(); };
 window.onresize = function () { setWindowSize(); };
 
 setWindowSize();
 setOverlayPos();
+
+// Load zip code data
+d3.tsv(zipData, function (_) {
+  zipGeo = _;
+
+  // Create object for quick lookup of a county's zip codes (used by code that dynamically
+  // injects zip code geometry)
+  countyZips = {};
+  zipGeo.forEach(function (d) {
+    const key = d.County.trim();
+    if (countyZips[key] === undefined) countyZips[key] = [];
+    countyZips[key].push(+d.ZipCode);
+  });
+
+  // Create data structure used to merge zip code and suspension data
+  const obj = {};
+  zipGeo.forEach(function (d) {
+    const key = d.ZipCode.trim();
+    obj[key] = d;
+    delete obj[key].ZipCode;
+  });
+  zipGeo = obj; // Redefine zipGeo from array to object
+  // console.log('zipGeo', zipGeo)
+
+  // Load driver license suspension data
+  d3.select('#message', 'Loading driver license suspension data...');
+  d3.tsv(suspData, function (suspensions) {
+    console.log('loaded driver license suspension data...');
+
+    // Merge in the zip geo data and create main data structure
+    data = suspensions.map(function (d) {
+      const zipData = zipGeo[d.ZipCode];
+      Object.keys(zipData).forEach(function (prop) { d[prop] = zipData[prop]; });
+      return d;
+    });
+
+    // Convert to numbers
+    data.forEach(function (d) {
+      const props = Object.keys(d);
+      props.forEach(function (prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; });
+    });
+
+    // Sort data in ascending order (so highest suspension rates are drawn last and on top of
+    // the stack)
+    data.sort(function (a, b) {
+      return a.FTAFTPS100 - b.FTAFTPS100;
+    });
+
+    // Create data structure for quick lookup (used by zip code geometry event handler)
+    zipData = {};
+    data.forEach(function (d) {
+      zipData[d.ZipCode] = d;
+    });
+    // console.log('zipData', zipData)
+
+    // Load county geometry
+    d3.select('#message').text('Loading county boundary data...');
+    d3.json(countyTopo, function (error, county) {
+      counties = topojson.feature(county, county.objects.CaliforniaCounty);
+      console.log('loaded county info...');
+
+      // Load zip code geometry
+      d3.select('#message').text('Loading zip code boundary data...');
+      d3.json(zipTopo, function (error, zip) {
+        zipcodes = topojson.feature(zip, zip.objects.zip);
+        console.log('loaded zip code geo json file...');
+
+        const caZipCodeMin = 90001;
+        const caZipCodeMax = 96162;
+        zipcodes.features = zipcodes.features.filter(function (item) {
+          // if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
+          return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
+        });
+        // console.log('number of zipcodes: ', zipcodes.features.length)
+        // console.log('zipcodes', zipcodes);
+
+        const nodataZipCodes = [];
+        // let undefCount = 0;
+        zipcodes.features.forEach(function (d) {
+          d.properties.zip = +d.properties.zip;
+          const zipCode = d.properties.zip;
+
+          if (zipData[zipCode] === undefined) {
+            nodataZipCodes.push(zipCode);
+            // var zipGeoItem = zipGeo[zipCode];
+            d.properties.noData = true;
+          } else {
+            d.properties.noData = false;
+            d.properties.ZipCode = zipData[d.properties.zip].ZipCode;
+            d.properties.Places = zipData[d.properties.zip].Places;
+            d.properties.City = zipData[d.properties.zip].City;
+            d.properties.FTAFTPS100 = zipData[d.properties.zip].FTAFTPS100;
+            d.properties.povrate = zipData[d.properties.zip].povrate;
+            d.properties.Pop15Plus = zipData[d.properties.zip].Pop15Plus;
+            d.properties.IncK = zipData[d.properties.zip].IncK;
+            d.properties.Black = zipData[d.properties.zip].Black;
+            d.properties.Hisp = zipData[d.properties.zip].Hisp;
+            d.properties.WhiteNH = zipData[d.properties.zip].WhiteNH;
+            d.properties.Asian = zipData[d.properties.zip].Asian;
+          }
+        });
+
+        // console.log('nodataZipCodes: ', nodataZipCodes)
+        console.log('Zip codes with no data: ', nodataZipCodes.length);
+
+        zipcodes.features = zipcodes.features.filter(function (d) {
+          /*
+          if (d.properties.noData) return false;
+          else return true;
+          */
+          return !d.properties.noData;
+        });
+        // console.log('zipcodes.features.length: ', zipcodes.features)
+        console.log('Zip codes with data: ', zipcodes.features.length);
+
+        if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
+        else mapBoxInit();
+      });
+    });
+  });
+});
