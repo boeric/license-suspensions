@@ -584,6 +584,47 @@ function fly(idx) {
   flyTo(targets[idx]);
 }
 
+function rangeContrastEvent() {
+  const elem = d3.select(this)
+  const value = elem.property('value')
+  // console.log('value', value)
+  d3.select('#contrastText').text(fmt(value));
+
+  const dim = getDimension();
+  setDimension(dim, value / 100)
+}
+
+function rangeOpacityEvent() {
+  const elem = d3.select(this)
+  const value = elem.property('value')
+  d3.select('#opacityText').text(value);
+
+  const dim = getDimension();
+  const d = dimensions[dim];
+  d.opacity = value / 100;
+
+  setDimension(dim, d.gamma, d.opacity, d.color)
+}
+
+function updateMainContrast() {
+  const d = dimensions[0];
+  d.gamma = currGamma;
+  d3.range(bins).forEach(function (p) {
+    // const layerId = 'dataLayer' + p;
+    const layerId = `dataLayer${p}`;
+
+    // map.setFilter(layerId, d.filters[p])
+    // map.setPaintProperty(layerId, 'fill-color', d.color);
+    const gammaArg = d.inverse
+      ? (bins - p + 1) / bins
+      : (p + 1) / bins;
+    map.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
+  });
+
+  // Update legend
+  updateLegend('map', d);
+}
+
 function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
   // d3.select('#message').text('Initializing map in container: ' + container + '...')
   d3.select('#message').text(`Initializing map in container: ${container}...`);
@@ -638,12 +679,11 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
 
   // Add controls to the map, and event handler
   map.addControl(new mapboxgl.Navigation());
-  d3.selectAll('.mapboxgl-ctrl-compass').on('click', function() {
+  d3.selectAll('.mapboxgl-ctrl-compass').on('click', function () {
     d3.select('#tiltSlider').property('value', 0);
   });
 
   map.on('load', function () {
-    // console.log('load...')
     loader.className = 'done';
     setTimeout(function () {
       loader.className = 'hide';
@@ -675,9 +715,7 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
 
     // Add the zip code layers
     layers.forEach(function (d, i) {
-      // d3.select('#message').text('Adding layer: ' + i + '...')
       d3.select('#message').text(`Adding layer: ${i}'...`);
-      // console.log('--Adding layer', d, i)
       map.addLayer(d);
     });
 
@@ -687,7 +725,6 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   // const cursorTrackerDiv = d3.select('#' + container)
   const cursorTrackerDiv = d3.select(`#${container}`)
     .append('div')
-    // .attr('id', container + 'TrackerDiv')
     .attr('id', `${container}TrackerDiv`)
     .attr('class', 'trackerDiv')
     .style('position', 'absolute')
@@ -696,7 +733,6 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
 
   cursorTrackerDiv
     .append('div')
-    // .attr('id', container + 'Tracker')
     .attr('id', `${container}Tracker`)
     .attr('class', 'tracker')
     .style('position', 'absolute')
@@ -709,7 +745,6 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
 
   // Remove zip code area border when zoomed out
   map.on('zoom', function () {
-    // const layer = map.getLayer('zipcodesLine');
     const zoom = map.getZoom();
     if (zoom < 9) {
       map.setPaintProperty('zipcodesLine', 'line-width', 0);
@@ -723,11 +758,10 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
     mouseMove(container, e);
   });
 
-  // create title elem above the map
+  // Create title elem above the map
   // const titleDiv = d3.select('#' + container)
   const titleDiv = d3.select(`#${container}`)
     .append('div')
-    // .attr('id', container + 'Title')
     .attr('id', `${container}Title`)
     .attr('class', 'headerBox');
 
@@ -736,24 +770,22 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
     .text(title);
 
   // Create the legend div and svg (actual svg contents will be set later)
-  // var legendDiv = d3.select('#' + container)
   const legendDiv = d3.select(`#${container}`)
     .append('div')
-    // .attr('id', container + 'Legend')
     .attr('id', `${container}Legend`)
     .attr('class', 'legend')
     .style('right', function () { return container === 'map2' ? null : '20px'; })
     .style('left', function () { return container === 'map2' ? '20px' : null; });
 
   legendDiv.append('label')
-    // .style('margin-left', (legendMarginLeft - 3) + 'px')
     .style('margin-left', `${(legendMarginLeft - 3)}px`)
     .text('Legend');
 
-  const svg = legendDiv.append('svg')
+  legendDiv.append('svg')
     .attr('width', legendSvgWidth)
     .attr('height', legendSvgHeight)
-    .attr('id', container + 'LegendSvg')
+    // .attr('id', container + 'LegendSvg')
+    .attr('id', `${container}LegendSvg`)
     .append('g');
 
   // If dimensions array is passed in, then select elem to allow choice of data series
@@ -761,7 +793,6 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
     // const dataSelectDiv = d3.select('#' + container)
     const dataSelectDiv = d3.select(`#${container}`)
       .append('div')
-      // .attr('id', container + 'DataSelect')
       .attr('id', `${container}DataSelect`)
       .attr('class', 'dataSelect')
       .style('right', function () { return container === 'map2' ? '20px' : null; })
@@ -862,11 +893,11 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
         flyTo(targets[+value]);
       });
 
-    const options = flyToSelect.selectAll('option')
+    flyToSelect.selectAll('option')
       .data(targets)
       .enter().append('option')
-      .property('value', function(d, i) { return i; })
-      .text(function(d) { return d.name; });
+      .property('value', function (d, i) { return i; })
+      .text(function (d) { return d.name; });
 
     // Create contrast radio buttons
     const contrastData = [
@@ -890,8 +921,8 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
       .append('input')
       .attr('type', 'radio')
       .attr('name', 'contrast')
-      .attr('value', function(d) { return d.value; })
-      .property('checked', function(d) { return d.checked; })
+      .attr('value', function (d) { return d.value; })
+      .property('checked', function (d) { return d.checked; })
       .style('margin-right', '10px')
       .text(function (d) { return d.value; })
       .on('change', function () {
@@ -904,32 +935,9 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
       });
   }
 
-  function rangeContrastEvent() {
-    const elem = d3.select(this)
-    const value = elem.property('value')
-    // console.log('value', value)
-    d3.select('#contrastText').text(fmt(value));
-
-    const dim = getDimension();
-    setDimension(dim, value / 100)
-  }
-
-  function rangeOpacityEvent() {
-    const elem = d3.select(this)
-    const value = elem.property('value')
-    d3.select('#opacityText').text(value);
-
-    const dim = getDimension();
-    const d = dimensions[dim];
-    d.opacity = value / 100;
-
-    setDimension(dim, d.gamma, d.opacity, d.color)
-  }
-
   // Return the map to caller
   return map;
 }
-// End initMap
 
 
 function mapBoxInit() {
@@ -937,8 +945,6 @@ function mapBoxInit() {
 
   // Mapbox access token
   mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
-
-
 
   // Process dimensions
   dimensions.forEach(function (dim) {
@@ -984,14 +990,11 @@ function mapBoxInit() {
 
   d3.select('#message').text('Processed data dimensions...');
 
-
-
   // Init first (left) map
   let d = dimensions[0];
   d3.select('#message').text('Initializing first map panel...');
   map = initMap('map', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
   updateLegend('map', d);
-  // window.firstMap = map;
 
   // Init second (right) map
   const dimensionList = dimensions
@@ -1001,7 +1004,6 @@ function mapBoxInit() {
 
   d3.select('#message').text('Initializing second map panel...');
   map2 = initMap('map2', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList);
-  // window.secondMap = map;
   updateLegend('map2', d);
 
   d3.select('#message').text('Loading map layers...');
@@ -1009,25 +1011,6 @@ function mapBoxInit() {
   d3.select('#contrastText').text(fmt(d.gamma * 100));
   d3.select('#opacityRange').property('value', d.opacity * 100);
   d3.select('#opacityText').text(fmt(d.opacity * 100));
-
-  function updateMainContrast() {
-    const d = dimensions[0];
-    d.gamma = currGamma;
-    d3.range(bins).forEach(function (p) {
-      // const layerId = 'dataLayer' + p;
-      const layerId = `dataLayer${p}`;
-
-      // map.setFilter(layerId, d.filters[p])
-      // map.setPaintProperty(layerId, 'fill-color', d.color);
-      const gammaArg = d.inverse
-        ? (bins - p + 1) / bins
-        : (p + 1) / bins;
-      map.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
-    });
-
-    // Update legend
-    updateLegend('map', d);
-  }
 
   // Init percentile markers
   setPercentileMarker('map', -1, false);
@@ -1067,16 +1050,6 @@ function mapBoxInit() {
     }
   });
 
-  map.on('drag', function (e) {
-    console.log('drag -----------e', e);
-  });
-  map.on('dragend', function (e) {
-    console.log('dragend -----------e', e);
-  });
-  map.on('dragstart', function (e) {
-    console.log('dragstart -----------e', e);
-  });
-
   // Map pitch handlers
   function tiltSlider() {
     const elem = d3.select(this);
@@ -1112,7 +1085,6 @@ function mapBoxInit() {
     setOverlayPos();
   });
 }
-
 
 // Set the initial window size
 setWindowSize();
@@ -1165,8 +1137,8 @@ d3.tsv(zipData, function (_) {
       props.forEach(function (prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; });
     });
 
-    // Sort data in ascending order (so highest suspension rates are drawn last and on top of
-    // the stack)
+    // Sort data in ascending order (so highest suspension rates are drawn last and on top
+    // of the stack)
     data.sort(function (a, b) {
       return a.FTAFTPS100 - b.FTAFTPS100;
     });
@@ -1192,7 +1164,6 @@ d3.tsv(zipData, function (_) {
         const caZipCodeMin = 90001;
         const caZipCodeMax = 96162;
         zipcodes.features = zipcodes.features.filter(function (item) {
-          // if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
           return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
         });
 
@@ -1228,9 +1199,12 @@ d3.tsv(zipData, function (_) {
         });
         console.log('Zip codes with data: ', zipcodes.features.length);
 
+        // Test support for maxboxgl
         if (!mapboxgl.supported()) {
+          // No support, alert user
           alert('Your browser does not support Mapbox GL');
         } else {
+          // Initialize the mapbox map
           mapBoxInit();
         }
       });
