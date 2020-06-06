@@ -150,16 +150,17 @@ const dimensions = [
 const loader = document.getElementById('loader');
 
 
+// Sets the position of the overlay
 function setOverlayPos() {
   const main = d3.select('#main');
   const height = main.node().offsetHeight;
-  // const windowHeight = window.innerHeight;
 
   main.style('top', function () {
     return `${Math.max(10, window.innerHeight - height - 25)}px`;
   });
 }
 
+// Window resize handler
 function setWindowSize() {
   const width = (window.innerWidth - 6) / 2;
   d3.select('#map').style('width', `${width}px`);
@@ -168,6 +169,7 @@ function setWindowSize() {
   setOverlayPos();
 }
 
+// Calculate gamma (image contrast)
 function calcGamma(val, gamma) {
   return Math.pow(val, (1 / gamma));
 }
@@ -1113,14 +1115,16 @@ function mapBoxInit() {
   });
 }
 
-function start() {
 
-}
-
-// window.onload = function () { start(); };
-window.onresize = function () { setWindowSize(); };
-
+// Set the initial window size
 setWindowSize();
+
+// Register window resize handler
+window.onresize = () => {
+  setWindowSize();
+};
+
+// Set initial position of overlay
 setOverlayPos();
 
 // Load zip code data
@@ -1144,12 +1148,11 @@ d3.tsv(zipData, function (_) {
     delete obj[key].ZipCode;
   });
   zipGeo = obj; // Redefine zipGeo from array to object
-  // console.log('zipGeo', zipGeo)
 
   // Load driver license suspension data
   d3.select('#message', 'Loading driver license suspension data...');
   d3.tsv(suspData, function (suspensions) {
-    console.log('loaded driver license suspension data...');
+    console.log('Loaded driver license suspension data...');
 
     // Merge in the zip geo data and create main data structure
     data = suspensions.map(function (d) {
@@ -1175,19 +1178,18 @@ d3.tsv(zipData, function (_) {
     data.forEach(function (d) {
       zipData[d.ZipCode] = d;
     });
-    // console.log('zipData', zipData)
 
     // Load county geometry
     d3.select('#message').text('Loading county boundary data...');
     d3.json(countyTopo, function (error, county) {
       counties = topojson.feature(county, county.objects.CaliforniaCounty);
-      console.log('loaded county info...');
+      console.log('Loaded county boundary data...');
 
       // Load zip code geometry
       d3.select('#message').text('Loading zip code boundary data...');
       d3.json(zipTopo, function (error, zip) {
         zipcodes = topojson.feature(zip, zip.objects.zip);
-        console.log('loaded zip code geo json file...');
+        console.log('Loaded zip code boundary data...');
 
         const caZipCodeMin = 90001;
         const caZipCodeMax = 96162;
@@ -1195,18 +1197,14 @@ d3.tsv(zipData, function (_) {
           // if (item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax) return true;
           return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
         });
-        // console.log('number of zipcodes: ', zipcodes.features.length)
-        // console.log('zipcodes', zipcodes);
 
         const nodataZipCodes = [];
-        // let undefCount = 0;
         zipcodes.features.forEach(function (d) {
           d.properties.zip = +d.properties.zip;
           const zipCode = d.properties.zip;
 
           if (zipData[zipCode] === undefined) {
             nodataZipCodes.push(zipCode);
-            // var zipGeoItem = zipGeo[zipCode];
             d.properties.noData = true;
           } else {
             d.properties.noData = false;
@@ -1224,21 +1222,19 @@ d3.tsv(zipData, function (_) {
           }
         });
 
-        // console.log('nodataZipCodes: ', nodataZipCodes)
+        // Log number of zip codes with no data
         console.log('Zip codes with no data: ', nodataZipCodes.length);
 
         zipcodes.features = zipcodes.features.filter(function (d) {
-          /*
-          if (d.properties.noData) return false;
-          else return true;
-          */
           return !d.properties.noData;
         });
-        // console.log('zipcodes.features.length: ', zipcodes.features)
         console.log('Zip codes with data: ', zipcodes.features.length);
 
-        if (!mapboxgl.supported()) alert('Your browser does not support Mapbox GL');
-        else mapBoxInit();
+        if (!mapboxgl.supported()) {
+          alert('Your browser does not support Mapbox GL');
+        } else {
+          mapBoxInit();
+        }
       });
     });
   });
