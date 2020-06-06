@@ -364,7 +364,6 @@ function setPercentileMarker(map, percentile, inverse) {
     .attr('cy', function () { return pos; });
 }
 
-
 function updatePercentileMarker(zipCode) {
   let idx = -1;
   let idx2 = -1;
@@ -405,144 +404,138 @@ function updatePercentileMarker(zipCode) {
   setPercentileMarker('map2', idx2, inverse2);
 }
 
+// Manages the side panel
+function manageSidePanel(data) {
+  const controls = d3.select('#controls');
+
+  // Remove current elements
+  controls.selectAll('p').remove();
+
+  // Add new p elements
+  controls.selectAll('p')
+    .data(data)
+    .enter().append('p')
+    .html(function (d) { return d; });
+
+  setOverlayPos();
+}
+
+
+function mouseMove(container, e) {
+  const fmtPct = d3.format(',.1%');
+  const fmtInt = d3.format(',d');
+  const fmtFloat = d3.format('.1f');
+
+  // console.log('container', container);
+  const t = container === 'map'
+    ? { tracker: 'map2', noTracker: 'map' }
+    : { tracker: 'map', noTracker: 'map2' };
+
+  // d3.select('#' + t.tracker + 'Tracker').style('left', e.point.x + 'px').style('top', e.point.y + 'px');
+  d3.select(`#${t.tracker}Tracker`)
+    .style('left', `${e.point.x}px`)
+    .style('top', `${e.point.y}px`);
+
+  // d3.select('#' + t.noTracker + 'Tracker').style('left', '-40px').style('top', '-40px')
+  d3.select(`#${t.noTracker}Tracker`)
+    .style('left', '-40px')
+    .style('top', '-40px');
+
+  map.featuresAt(e.point, { radius: 5 }, function (error, features) {
+    if (error) throw error;
+    if (features.length === 0) return;
+
+    // Separate county and zip code entries in the features array
+    // const countyInfo = features.filter(function (d) { if (d.properties.ALAND !== undefined) return true; });
+    // const countyInfo = features.filter(function (d) { return d.properties.ALAND !== undefined; });
+    const countyInfo = features.filter((d) => d.properties.ALAND !== undefined);
+
+
+    // const zipInfo = features.filter(function (d) { if (d.properties.City !== undefined) return true; });
+    // const zipInfo = features.filter(function (d) { return d.properties.City !== undefined; });
+    const zipInfo = features.filter((d) => d.properties.City !== undefined);
+
+    // Clear properties
+    const item = {
+      County: '',
+      ZipCode: '',
+      Places: '',
+      FTAFTPS100: '',
+      City: '',
+      povrate: '',
+      Pop15Plus: '',
+      IncK: '',
+      Black: '',
+      Hisp: '',
+      Asian: '',
+      White: '',
+    };
+
+    // Obtain county name from first item in county array
+    if (countyInfo.length > 0) {
+      item.County = countyInfo[0].properties.NAME;
+    }
+
+    // Obtain zip code info from first item in zip code array
+    if (zipInfo.length > 0) {
+      item.ZipCode =    zipInfo[0].properties.zip;
+      item.Places =     zipInfo[0].properties.Places;
+      item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
+      item.City =       zipInfo[0].properties.City;
+      item.povrate =    zipInfo[0].properties.povrate;
+      item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
+      item.IncK =       zipInfo[0].properties.IncK;
+      item.Black =      zipInfo[0].properties.Black;
+      item.Hisp =       zipInfo[0].properties.Hisp;
+      item.Asian =      zipInfo[0].properties.Asian;
+      item.White =      zipInfo[0].properties.WhiteNH;
+    }
+
+    // Set the text in the overlay panel
+    /*
+    var text = [
+      'Zip Code: <b>' + item.ZipCode + '</b>',
+      'Place: <b>' + item.Places + '</b>',
+      'County: <b>' + item.County + '</b>',
+      'Suspensions: <b>' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
+      'Poverty Rate: <b>' + fmtPct(item.povrate / 100) + '</b>',
+      'Population 15y+: <b>' + fmtInt(item.Pop15Plus) + '</b>',
+      'Avg Income: <b>' + fmtFloat('' + item.IncK) + 'K</b>',
+      'Black: <b>' + fmtPct('' + item.Black / 100) + '</b>',
+      'Hispanic: <b>' + fmtPct('' + item.Hisp / 100) + '</b>',
+      'Asian: <b>' + fmtPct('' + item.Asian / 100) + '</b>',
+      'White: <b>' + fmtPct('' + item.White / 100) + '</b>'
+    ];
+    */
+    // console.log('item', item)
+    const text = [
+      '<b>Location: </b>' +
+          ' <b>' + item.Places + '</b>' +
+          ' Zip: ' + item.ZipCode +
+          ' (' + item.County + ' County)',
+      '<b>DL. Suspension Rate: ' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
+      '<b>Poverty Rate: ' + fmtPct(item.povrate / 100) + '</b>',
+      '<b>Population 15y+: ' + fmtInt(item.Pop15Plus) + '</b>',
+      '<b>Avg Income: $' + fmtFloat('' + item.IncK) + 'K</b>',
+      '<b>Racial composition: </b>' +
+          ' Black: ' + fmtPct('' + item.Black / 100) +
+          ' Lat: ' +  fmtPct('' + item.Hisp  / 100) +
+          ' Asian: ' + fmtPct('' + item.Asian / 100) +
+          ' White: ' + fmtPct('' + item.White / 100)
+    ];
+
+    // Update panel
+    manageSidePanel(text);
+
+    // Update percentile marker
+    updatePercentileMarker(item.ZipCode);
+  });
+}
+
 
 function mapBoxInit() {
   // dataset dimensions
   // var bins = 10;
-
-
-
-
-
-
-  // Manages the side panel
-  function manageSidePanel(data) {
-    const controls = d3.select('#controls');
-
-    // Remove current elements
-    controls.selectAll('p').remove();
-
-    // Add new p elements
-    controls.selectAll('p')
-      .data(data)
-      .enter().append('p')
-      .html(function (d) { return d; });
-
-    setOverlayPos();
-  }
-
-  function mouseMove(container, e) {
-    const fmtPct = d3.format(',.1%');
-    const fmtInt = d3.format(',d');
-    const fmtFloat = d3.format('.1f');
-
-    // console.log('container', container);
-    const t = container === 'map'
-      ? { tracker: 'map2', noTracker: 'map' }
-      : { tracker: 'map', noTracker: 'map2' };
-
-    // d3.select('#' + t.tracker + 'Tracker').style('left', e.point.x + 'px').style('top', e.point.y + 'px');
-    d3.select(`#${t.tracker}Tracker`)
-      .style('left', `${e.point.x}px`)
-      .style('top', `${e.point.y}px`);
-
-    // d3.select('#' + t.noTracker + 'Tracker').style('left', '-40px').style('top', '-40px')
-    d3.select(`#${t.noTracker}Tracker`)
-      .style('left', '-40px')
-      .style('top', '-40px');
-
-    map.featuresAt(e.point, { radius: 5 }, function (error, features) {
-      if (error) throw error;
-      if (features.length === 0) return;
-
-      // Separate county and zip code entries in the features array
-      // const countyInfo = features.filter(function (d) { if (d.properties.ALAND !== undefined) return true; });
-      // const countyInfo = features.filter(function (d) { return d.properties.ALAND !== undefined; });
-      const countyInfo = features.filter((d) => d.properties.ALAND !== undefined);
-
-
-      // const zipInfo = features.filter(function (d) { if (d.properties.City !== undefined) return true; });
-      // const zipInfo = features.filter(function (d) { return d.properties.City !== undefined; });
-      const zipInfo = features.filter((d) => d.properties.City !== undefined);
-
-      // Clear properties
-      const item = {
-        County: '',
-        ZipCode: '',
-        Places: '',
-        FTAFTPS100: '',
-        City: '',
-        povrate: '',
-        Pop15Plus: '',
-        IncK: '',
-        Black: '',
-        Hisp: '',
-        Asian: '',
-        White: '',
-      };
-
-      // Obtain county name from first item in county array
-      if (countyInfo.length > 0) {
-        item.County = countyInfo[0].properties.NAME;
-      }
-
-      // Obtain zip code info from first item in zip code array
-      if (zipInfo.length > 0) {
-        item.ZipCode =    zipInfo[0].properties.zip;
-        item.Places =     zipInfo[0].properties.Places;
-        item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
-        item.City =       zipInfo[0].properties.City;
-        item.povrate =    zipInfo[0].properties.povrate;
-        item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
-        item.IncK =       zipInfo[0].properties.IncK;
-        item.Black =      zipInfo[0].properties.Black;
-        item.Hisp =       zipInfo[0].properties.Hisp;
-        item.Asian =      zipInfo[0].properties.Asian;
-        item.White =      zipInfo[0].properties.WhiteNH;
-      }
-
-      // Set the text in the overlay panel
-      /*
-      var text = [
-        'Zip Code: <b>' + item.ZipCode + '</b>',
-        'Place: <b>' + item.Places + '</b>',
-        'County: <b>' + item.County + '</b>',
-        'Suspensions: <b>' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
-        'Poverty Rate: <b>' + fmtPct(item.povrate / 100) + '</b>',
-        'Population 15y+: <b>' + fmtInt(item.Pop15Plus) + '</b>',
-        'Avg Income: <b>' + fmtFloat('' + item.IncK) + 'K</b>',
-        'Black: <b>' + fmtPct('' + item.Black / 100) + '</b>',
-        'Hispanic: <b>' + fmtPct('' + item.Hisp / 100) + '</b>',
-        'Asian: <b>' + fmtPct('' + item.Asian / 100) + '</b>',
-        'White: <b>' + fmtPct('' + item.White / 100) + '</b>'
-      ];
-      */
-      // console.log('item', item)
-      const text = [
-        '<b>Location: </b>' +
-            ' <b>' + item.Places + '</b>' +
-            ' Zip: ' + item.ZipCode +
-            ' (' + item.County + ' County)',
-        '<b>DL. Suspension Rate: ' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
-        '<b>Poverty Rate: ' + fmtPct(item.povrate / 100) + '</b>',
-        '<b>Population 15y+: ' + fmtInt(item.Pop15Plus) + '</b>',
-        '<b>Avg Income: $' + fmtFloat('' + item.IncK) + 'K</b>',
-        '<b>Racial composition: </b>' +
-            ' Black: ' + fmtPct('' + item.Black / 100) +
-            ' Lat: ' +  fmtPct('' + item.Hisp  / 100) +
-            ' Asian: ' + fmtPct('' + item.Asian / 100) +
-            ' White: ' + fmtPct('' + item.White / 100)
-      ];
-
-      // Update panel
-      manageSidePanel(text);
-
-      // Update percentile marker
-      updatePercentileMarker(item.ZipCode);
-    });
-  }
-
-
 
   d3.select('#message').text('Loading vector maps...');
 
