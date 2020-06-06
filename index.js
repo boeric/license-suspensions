@@ -70,6 +70,141 @@ function calcGamma(val, gamma) {
   return Math.pow(val, (1 / gamma));
 }
 
+// Updates the legend with colors, opacities and threshold text
+function updateLegend(map, dim) {
+  const data = d3.range(bins).map(function(e, i) {
+    const obj = {};
+    obj.color = dim.color;
+    // let gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins;
+    const gammaArg = (i + 1) / bins;
+    obj.opacity = calcGamma(gammaArg, dim.gamma) * dim.opacity;
+    obj.value = dim.dist[i];
+    obj.preUnit = dim.preUnit;
+    obj.postUnit = dim.postUnit;
+    obj.fmt = dim.fmt;
+    obj.divide = dim.divide;
+    obj.inverse = dim.inverse;
+    return obj;
+  });
+
+  const tickData = data.slice();
+  tickData.push({
+    last: true,
+    value: dim.range[1],
+    preUnit: dim.preUnit,
+    postUnit: dim.postUnit,
+    fmt: dim.fmt,
+    divide: dim.divide,
+    inverse: dim.inverse,
+  });
+  if (dim.inverse) tickData.reverse();
+
+  // var svg = d3.select('#' + map + 'LegendSvg').select('g')
+  const svg = d3.select(`#${map}LegendSvg`).select('g');
+
+  // Append opaque background
+  svg.selectAll('.backgroundRect')
+    .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: 'white', opacity: 1 }])
+    .enter().append('rect')
+    .attr('class', 'backgroundRect')
+    .attr('width', function (d) { return d.width; })
+    .attr('height', function (d) { return d.height; })
+    .attr('x', function (d) { return d.x; })
+    .attr('y', function (d) { return d.y; })
+    .style('fill', function (d) { return d.color; })
+    .style('opacity', function (d) { return d.opacity; });
+
+  const boxes = svg.selectAll('.foregroundRect')
+    .data(data);
+
+  boxes
+    .enter().append('rect')
+    .attr('class', 'foregroundRect')
+    .attr('width', legendElemWidth)
+    .attr('height', legendElemHeight)
+    .attr('x', legendMarginLeft)
+    .attr('y', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+    .style('stroke', 'gray');
+
+  boxes
+    .style('fill', function(d) { return d.color; })
+    .style('opacity', function(d) { return d.opacity + 0.0001; });
+
+  svg.selectAll('.leftTick')
+    .data(tickData)
+    .enter().append('line')
+    .attr('class', 'leftTick')
+    .attr('x1', legendMarginLeft - 5)
+    .attr('x2', legendMarginLeft + legendElemWidth + 5)
+    .attr('y1', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+    .attr('y2', function (d, i) { return legendMarginTop + i * legendElemHeight; })
+    .style('stroke', 'gray');
+
+  svg.selectAll('.leftScale')
+    .data(tickData)
+    .enter().append('text')
+    .attr('class', 'leftScale')
+    .attr('x', legendMarginLeft - 6)
+    .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
+    .text(function (d, i) {
+      // return dim.inverse ? (bins - i) * 10 + '%' : i * 10 + '%';
+      // return i * 10 + '%';
+      // return (bins - i) / bins * 100 + '%'
+      // return i / bins * 100 + '%'
+      return `${i / bins * 100}%`;
+    })
+    .attr('text-anchor', 'end')
+    .style('font-size', '10px');
+
+  const rightScale = svg.selectAll('.rightScale')
+    .data(tickData);
+
+  rightScale
+    .enter()
+    .append('text')
+    .attr('class', 'rightScale');
+
+  rightScale
+    .attr('x', legendMarginLeft + legendElemWidth + 6)
+    .attr('y', function (d, i) {
+      return legendMarginTop + 3 + i * legendElemHeight;
+    })
+    .text(function (d) { return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit; })
+    .attr('text-anchor', 'start')
+    .style('font-size', '10px');
+
+  svg.selectAll('.leftLegendTitle')
+    .data([{ text: 'Percentiles', rotate: '270' }])
+    .enter().append('text')
+    .attr('class', 'leftLegendTitle')
+    .style('text-anchor', 'middle')
+    .attr('transform', 'rotate(270)')
+    .attr('x', function () { return -legendSvgHeight / 2; })
+    .attr('y', 12)
+    .style('font-weight', 'bold')
+    .text('Percentiles');
+
+  svg.selectAll('.rightLegendTitle')
+    .data([{ text: 'Thresholds', rotate: '90' }])
+    .enter().append('text')
+    .attr('class', 'rightLegendTitle')
+    .style('text-anchor', 'middle')
+    .attr('transform', 'rotate(90)')
+    .attr('x', function () { return legendSvgHeight / 2; })
+    .attr('y', -115)
+    .style('font-weight', 'bold')
+    .text('Thresholds');
+
+  svg.selectAll('.percentileTracker')
+    .data([{ radius: 4, percentile: 3 }])
+    .enter().append('circle')
+    .attr('class', 'percentileTracker')
+    .attr('cx', (legendMarginLeft + legendElemWidth / 2))
+    .attr('cy', function (d) { return d.percentile * legendElemHeight + 1; })
+    .attr('r', function (d) { return d.radius; })
+    .style('fill', 'black');
+}
+
 function mapBoxInit() {
   // dataset dimensions
   // var bins = 10;
@@ -170,140 +305,7 @@ function mapBoxInit() {
     },
   ];
 
-  // Updates the legend with colors, opacities and threshold text
-  function updateLegend(map, dim) {
-    const data = d3.range(bins).map(function(e, i) {
-      const obj = {};
-      obj.color = dim.color;
-      // let gammaArg = dim.inverse ? (bins - i + 1) / bins : (i + 1) / bins;
-      const gammaArg = (i + 1) / bins;
-      obj.opacity = calcGamma(gammaArg, dim.gamma) * dim.opacity;
-      obj.value = dim.dist[i];
-      obj.preUnit = dim.preUnit;
-      obj.postUnit = dim.postUnit;
-      obj.fmt = dim.fmt;
-      obj.divide = dim.divide;
-      obj.inverse = dim.inverse;
-      return obj;
-    });
 
-    const tickData = data.slice();
-    tickData.push({
-      last: true,
-      value: dim.range[1],
-      preUnit: dim.preUnit,
-      postUnit: dim.postUnit,
-      fmt: dim.fmt,
-      divide: dim.divide,
-      inverse: dim.inverse
-    });
-    if (dim.inverse) tickData.reverse();
-
-    // var svg = d3.select('#' + map + 'LegendSvg').select('g')
-    const svg = d3.select(`#${map}LegendSvg`).select('g');
-
-    // Append opaque background
-    svg.selectAll('.backgroundRect')
-      .data([{ width: legendElemWidth, height: legendElemHeight * bins, x: legendMarginLeft, y: legendMarginTop, color: 'white', opacity: 1 }])
-      .enter().append('rect')
-      .attr('class', 'backgroundRect')
-      .attr('width', function (d) { return d.width; })
-      .attr('height', function (d) { return d.height; })
-      .attr('x', function (d) { return d.x; })
-      .attr('y', function (d) { return d.y; })
-      .style('fill', function (d) { return d.color; })
-      .style('opacity', function (d) { return d.opacity; });
-
-    const boxes = svg.selectAll('.foregroundRect')
-      .data(data);
-
-    boxes
-      .enter().append('rect')
-      .attr('class', 'foregroundRect')
-      .attr('width', legendElemWidth)
-      .attr('height', legendElemHeight)
-      .attr('x', legendMarginLeft)
-      .attr('y', function (d, i) { return legendMarginTop + i * legendElemHeight; })
-      .style('stroke', 'gray');
-
-    boxes
-      .style('fill', function(d) { return d.color; })
-      .style('opacity', function(d) { return d.opacity + 0.0001; });
-
-    svg.selectAll('.leftTick')
-      .data(tickData)
-      .enter().append('line')
-      .attr('class', 'leftTick')
-      .attr('x1', legendMarginLeft - 5)
-      .attr('x2', legendMarginLeft + legendElemWidth + 5)
-      .attr('y1', function (d, i) { return legendMarginTop + i * legendElemHeight; })
-      .attr('y2', function (d, i) { return legendMarginTop + i * legendElemHeight; })
-      .style('stroke', 'gray');
-
-    svg.selectAll('.leftScale')
-      .data(tickData)
-      .enter().append('text')
-      .attr('class', 'leftScale')
-      .attr('x', legendMarginLeft - 6)
-      .attr('y', function (d, i) { return legendMarginTop + 3 + i * legendElemHeight; })
-      .text(function (d, i) {
-        // return dim.inverse ? (bins - i) * 10 + '%' : i * 10 + '%';
-        // return i * 10 + '%';
-        // return (bins - i) / bins * 100 + '%'
-        // return i / bins * 100 + '%'
-        return `${i / bins * 100}%`;
-      })
-      .attr('text-anchor', 'end')
-      .style('font-size', '10px');
-
-    const rightScale = svg.selectAll('.rightScale')
-      .data(tickData);
-
-    rightScale
-      .enter()
-      .append('text')
-      .attr('class', 'rightScale');
-
-    rightScale
-      .attr('x', legendMarginLeft + legendElemWidth + 6)
-      .attr('y', function (d, i) {
-        return legendMarginTop + 3 + i * legendElemHeight;
-      })
-      .text(function (d) { return d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit; })
-      .attr('text-anchor', 'start')
-      .style('font-size', '10px');
-
-    svg.selectAll('.leftLegendTitle')
-      .data([{ text: 'Percentiles', rotate: '270' }])
-      .enter().append('text')
-      .attr('class', 'leftLegendTitle')
-      .style('text-anchor', 'middle')
-      .attr('transform', 'rotate(270)')
-      .attr('x', function () { return -legendSvgHeight / 2; })
-      .attr('y', 12)
-      .style('font-weight', 'bold')
-      .text('Percentiles');
-
-    svg.selectAll('.rightLegendTitle')
-      .data([{ text: 'Thresholds', rotate: '90' }])
-      .enter().append('text')
-      .attr('class', 'rightLegendTitle')
-      .style('text-anchor', 'middle')
-      .attr('transform', 'rotate(90)')
-      .attr('x', function () { return legendSvgHeight / 2; })
-      .attr('y', -115)
-      .style('font-weight', 'bold')
-      .text('Thresholds');
-
-    svg.selectAll('.percentileTracker')
-      .data([{ radius: 4, percentile: 3 }])
-      .enter().append('circle')
-      .attr('class', 'percentileTracker')
-      .attr('cx', (legendMarginLeft + legendElemWidth / 2))
-      .attr('cy', function (d) { return d.percentile * legendElemHeight + 1; })
-      .attr('r', function (d) { return d.radius; })
-      .style('fill', 'black');
-  }
 
   function updatePercentileMarker(zipCode) {
     let idx = -1;
