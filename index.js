@@ -12,6 +12,7 @@
   object-shorthand,
   no-shadow,
   key-spacing,
+  no-nested-ternary,
 */
 /* global d3, mapboxgl, topojson */
 
@@ -45,6 +46,115 @@ const targets = [
   { name: 'Sacramento',  location: [-121.50, 38.53], zoom:  9.9, bearing: 0, speed: 1, curve: 1 },
   { name: 'San Diego',   location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 },
 ];
+
+const dimensions = [
+  {
+    prop: 'FTAFTPS100',
+    preUnit: '',
+    postUnit: '',
+    fmt: fmtP,
+    divide: 100,
+    title: 'DL. Suspension Rate',
+    inverse: false,
+    gamma: 0.15, // 0.40, // 0.70,
+    opacity: 0.75, // 0.85,
+    invert: false,
+    color: 'darkred',
+    // dist: d3.range(bins)
+  },
+  {
+    prop: 'povrate',
+    preUnit: '',
+    postUnit: '',
+    fmt: fmtP,
+    divide: 100,
+    title: 'Poverty Rate',
+    inverse: false,
+    gamma: 0.15, // 0.50,
+    opacity: 0.80,
+    invert: false,
+    color: 'mediumblue',
+  },
+  /*
+  {
+    prop: 'IncK',
+    preUnit: '$',
+    postUnit: 'K',
+    fmt: fmt,
+    divide: 1,
+    title: 'Average Income (inverted)',
+    inverse: true,
+    gamma: 0.18, //0.50,
+    opacity: 0.80,
+    invert: false,
+    color: 'darkgreen',
+  },
+  */
+  {
+    prop: 'Black',
+    preUnit: '',
+    postUnit: '',
+    fmt: fmtP,
+    divide: 100,
+    title: 'African American %',
+    inverse: false,
+    gamma: 0.15, // .50,
+    opacity: 0.80,
+    invert: false,
+    color: 'purple',
+  },
+  {
+    prop: 'Hisp',
+    preUnit: '',
+    postUnit: '',
+    fmt: fmtP,
+    divide: 100,
+    title: 'Latino %',
+    inverse: false,
+    gamma: 0.15, // 0.50,
+    opacity: 0.80,
+    invert: false,
+    color: 'teal',
+  },
+  {
+    prop: 'Asian',
+    preUnit: '',
+    postUnit: '',
+    fmt: fmtP,
+    divide: 100,
+    title: 'Asian %',
+    inverse: false,
+    gamma: 0.15, // 0.50,
+    opacity: 0.80,
+    invert: false,
+    color: 'indianred',
+  },
+  {
+    prop: 'WhiteNH',
+    preUnit: '',
+    postUnit: '',
+    fmt: fmtP,
+    divide: 100,
+    title: 'White (Non-Latino) %',
+    inverse: false,
+    gamma: 0.15, // 0.50,
+    opacity: 0.80,
+    invert: false,
+    color: 'dimgray',
+  },
+];
+
+
+
+
+
+
+
+
+
+
+
+
 const loader = document.getElementById('loader');
 loader.className = '';
 
@@ -68,6 +178,41 @@ function setWindowSize() {
 
 function calcGamma(val, gamma) {
   return Math.pow(val, (1 / gamma));
+}
+
+let currDim = 1;
+function setDimension(dim, g, o, c) {
+  const d = dimensions[dim];
+  if (g !== undefined) {
+    d.gamma = +g;
+    currGamma = d.gamma;
+  }
+  if (o !== undefined) d.opacity = +o;
+  if (c !== undefined) d.color = c;
+  currDim = dim;
+  d.gamma = currGamma;
+
+  d3.range(bins).forEach(function (p) {
+    // const layerId = 'dataLayer' + p;
+    const layerId = `dataLayer${p}`;
+    map2.setFilter(layerId, d.filters[p]);
+    map2.setPaintProperty(layerId, 'fill-color', d.color);
+    const gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins;
+    map2.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
+  });
+
+  d3.select('#map2Title > .header').text(d.title);
+  d3.select('#contrastRange').property('value', d.gamma * 100);
+  d3.select('#contrastText').text(fmt(d.gamma * 100));
+  d3.select('#opacityRange').property('value', d.opacity * 100);
+  d3.select('#opacityText').text(fmt(d.opacity * 100));
+
+  // Update legend
+  updateLegend('map2', d);
+}
+
+function getDimension() {
+  return currDim;
 }
 
 // Updates the legend with colors, opacities and threshold text
@@ -127,8 +272,8 @@ function updateLegend(map, dim) {
     .style('stroke', 'gray');
 
   boxes
-    .style('fill', function(d) { return d.color; })
-    .style('opacity', function(d) { return d.opacity + 0.0001; });
+    .style('fill', function (d) { return d.color; })
+    .style('opacity', function (d) { return d.opacity + 0.0001; });
 
   svg.selectAll('.leftTick')
     .data(tickData)
@@ -205,153 +350,70 @@ function updateLegend(map, dim) {
     .style('fill', 'black');
 }
 
+function setPercentileMarker(map, percentile, inverse) {
+  const pos = percentile === -1
+    ? -100
+    : inverse
+      ? (bins - percentile) * legendElemHeight
+      : (percentile + 1) * legendElemHeight;
+
+  // d3.select('#' + map + 'LegendSvg').select('g').select('.percentileTracker')
+  d3.select(`#${map}LegendSvg`)
+    .select('g')
+    .select('.percentileTracker')
+    .attr('cy', function () { return pos; });
+}
+
+
+function updatePercentileMarker(zipCode) {
+  let idx = -1;
+  let idx2 = -1;
+  let inverse = false;
+  let inverse2 = false;
+
+  if (zipCode === '') {
+    // console.log('remove')
+  } else {
+    const data = zipData[zipCode];
+    if (data) {
+      // Handle map (dim 0)
+      let dim = dimensions[0];
+      let value = data[dim.prop];
+      let { dist } = dim;
+
+      dist.some(function (d) {
+        if (d > value) return true;
+        idx++;
+      });
+      inverse = dim.inverse;
+
+      // Handle map2
+      dim = dimensions[getDimension()];
+      value = data[dim.prop];
+      dist = dim.dist;
+      dist.some(function (d) {
+        if (d > value) return true;
+        idx2++;
+      });
+      inverse2 = dim.inverse;
+      // console.log('percentile2: ' + idx2)
+    }
+  }
+
+  // Set the marker
+  setPercentileMarker('map', idx, inverse);
+  setPercentileMarker('map2', idx2, inverse2);
+}
+
+
 function mapBoxInit() {
   // dataset dimensions
   // var bins = 10;
-  const dimensions = [
-    {
-      prop: 'FTAFTPS100',
-      preUnit: '',
-      postUnit: '',
-      fmt: fmtP,
-      divide: 100,
-      title: 'DL. Suspension Rate',
-      inverse: false,
-      gamma: 0.15, // 0.40, // 0.70,
-      opacity: 0.75, // 0.85,
-      invert: false,
-      color: 'darkred',
-      // dist: d3.range(bins)
-    },
-    {
-      prop: 'povrate',
-      preUnit: '',
-      postUnit: '',
-      fmt: fmtP,
-      divide: 100,
-      title: 'Poverty Rate',
-      inverse: false,
-      gamma: 0.15, // 0.50,
-      opacity: 0.80,
-      invert: false,
-      color: 'mediumblue',
-    },
-    /*
-    {
-      prop: 'IncK',
-      preUnit: '$',
-      postUnit: 'K',
-      fmt: fmt,
-      divide: 1,
-      title: 'Average Income (inverted)',
-      inverse: true,
-      gamma: 0.18, //0.50,
-      opacity: 0.80,
-      invert: false,
-      color: 'darkgreen',
-    },
-    */
-    {
-      prop: 'Black',
-      preUnit: '',
-      postUnit: '',
-      fmt: fmtP,
-      divide: 100,
-      title: 'African American %',
-      inverse: false,
-      gamma: 0.15, // .50,
-      opacity: 0.80,
-      invert: false,
-      color: 'purple',
-    },
-    {
-      prop: 'Hisp',
-      preUnit: '',
-      postUnit: '',
-      fmt: fmtP,
-      divide: 100,
-      title: 'Latino %',
-      inverse: false,
-      gamma: 0.15, // 0.50,
-      opacity: 0.80,
-      invert: false,
-      color: 'teal',
-    },
-    {
-      prop: 'Asian',
-      preUnit: '',
-      postUnit: '',
-      fmt: fmtP,
-      divide: 100,
-      title: 'Asian %',
-      inverse: false,
-      gamma: 0.15, // 0.50,
-      opacity: 0.80,
-      invert: false,
-      color: 'indianred',
-    },
-    {
-      prop: 'WhiteNH',
-      preUnit: '',
-      postUnit: '',
-      fmt: fmtP,
-      divide: 100,
-      title: 'White (Non-Latino) %',
-      inverse: false,
-      gamma: 0.15, // 0.50,
-      opacity: 0.80,
-      invert: false,
-      color: 'dimgray',
-    },
-  ];
 
 
 
-  function updatePercentileMarker(zipCode) {
-    let idx = -1;
-    let idx2 = -1;
-    let inverse = false;
-    let inverse2 = false;
 
-    if (zipCode === '') {
-      // console.log('remove')
-    } else {
-      const data = zipData[zipCode];
-      if (data) {
-        // Handle map (dim 0)
-        let dim = dimensions[0];
-        let value = data[dim.prop];
-        let { dist } = dim;
 
-        dist.some(function (d) {
-          if (d > value) return true;
-          idx++;
-        });
-        inverse = dim.inverse;
-
-        // Handle map2
-        dim = dimensions[getDimension()];
-        value = data[dim.prop];
-        dist = dim.dist;
-        dist.some(function (d) {
-          if (d > value) return true;
-          idx2++;
-        });
-        inverse2 = dim.inverse;
-        // console.log('percentile2: ' + idx2)
-      }
-    }
-
-    // Set the marker
-    setPercentileMarker('map', idx, inverse);
-    setPercentileMarker('map2', idx2, inverse2);
-  }
-
-  function setPercentileMarker(map, percentile, inverse) {
-    let pos = percentile === -1 ? -100 : inverse ? (bins - percentile) * legendElemHeight : (percentile + 1) * legendElemHeight;
-    d3.select('#' + map + 'LegendSvg').select('g').select('.percentileTracker')
-      .attr('cy', function () { return pos; });
-  }
 
   // Manages the side panel
   function manageSidePanel(data) {
@@ -480,40 +542,7 @@ function mapBoxInit() {
     });
   }
 
-  let currDim = 1;
-  function setDimension(dim, g, o, c) {
-    const d = dimensions[dim];
-    if (g !== undefined) {
-      d.gamma = +g;
-      currGamma = d.gamma;
-    }
-    if (o !== undefined) d.opacity = +o;
-    if (c !== undefined) d.color = c;
-    currDim = dim;
-    d.gamma = currGamma;
 
-    d3.range(bins).forEach(function (p) {
-      // const layerId = 'dataLayer' + p;
-      const layerId = `dataLayer${p}`;
-      map2.setFilter(layerId, d.filters[p]);
-      map2.setPaintProperty(layerId, 'fill-color', d.color);
-      const gammaArg = d.inverse ? (bins - p + 1) / bins : (p + 1) / bins;
-      map2.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
-    });
-
-    d3.select('#map2Title > .header').text(d.title);
-    d3.select('#contrastRange').property('value', d.gamma * 100);
-    d3.select('#contrastText').text(fmt(d.gamma * 100));
-    d3.select('#opacityRange').property('value', d.opacity * 100);
-    d3.select('#opacityText').text(fmt(d.opacity * 100));
-
-    // Update legend
-    updateLegend('map2', d)
-  }
-
-  function getDimension() {
-    return currDim;
-  }
 
   d3.select('#message').text('Loading vector maps...');
 
