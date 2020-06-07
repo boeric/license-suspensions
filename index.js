@@ -591,6 +591,7 @@ function rangeContrastEvent() {
 
   const dim = getDimension();
   setDimension(dim, value / 100);
+  updateMainContrast();
 }
 
 function rangeOpacityEvent() {
@@ -616,6 +617,7 @@ function updateMainContrast() {
     const gammaArg = d.inverse
       ? (bins - p + 1) / bins
       : (p + 1) / bins;
+
     map.setPaintProperty(layerId, 'fill-opacity', calcGamma(gammaArg, d.gamma) * d.opacity);
   });
 
@@ -838,7 +840,7 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
 
     span.append('input')
       .attr('id', 'contrastRange')
-      .attr('min', 0)
+      .attr('min', 1)
       .attr('max', 100)
       .attr('step', 1)
       .attr('value', 100)
