@@ -29,14 +29,13 @@
   - White %
 
 - Contrast
-  - gamma formula (row 650)
+  - gamma formula
   - Math.pow(val, (1 / gamma))
 
 - Event handling
   - FeaturesAt (row 1400)
 
-- Fly to
-  - (row 1000)
+- Fly to feature
 
 - Legend
   - 10% percent buckets using d3.quantile

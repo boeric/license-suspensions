@@ -18,10 +18,10 @@
 // Variables
 
 const dataSet = window.location.search.indexOf('dataFile=2015') !== -1 ? 'old' : 'new';
-let zipData = 'cazipgeo.txt';
-const suspData = dataSet === 'old' ? 'suspensions.txt' : 'suspensions2016.txt';
-const countyTopo = 'county4.json';
-const zipTopo = 'ziptopo6.json';
+let zipData = 'data-cazipgeo.txt';
+const suspData = dataSet === 'old' ? 'data-suspensions.txt' : 'data-suspensions2016.txt';
+const countyTopo = 'topo-county4.json';
+const zipTopo = 'topo-ziptopo6.json';
 let counties;
 let zipcodes;
 let data;
@@ -33,7 +33,7 @@ const bins = 10;
 let currGamma = 0.15;
 let currDim = 1;
 const legendElemWidth = 35;
-const legendElemHeight = 18; // 13;
+const legendElemHeight = 18;
 const legendSvgHeight = bins * legendElemHeight + 20;
 const legendSvgWidth = 128;
 const legendMarginLeft = 47;
