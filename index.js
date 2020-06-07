@@ -1,22 +1,22 @@
+/*
+  By Bo Ericsson, bo@boe.net
+*/
+
 /* eslint-disable
   func-names,
   key-spacing,
   no-alert,
   no-console,
-  no-multi-spaces,
   no-nested-ternary,
   no-param-reassign,
   no-plusplus,
-  no-restricted-properties,
   no-shadow,
-  object-curly-newline,
-  object-shorthand,
-  prefer-arrow-callback,
 */
 
 /* global d3, mapboxgl, topojson */
 
 // Variables
+
 const dataSet = window.location.search.indexOf('dataFile=2015') !== -1 ? 'old' : 'new';
 let zipData = 'cazipgeo.txt';
 const suspData = dataSet === 'old' ? 'suspensions.txt' : 'suspensions2016.txt';
@@ -40,12 +40,14 @@ const legendMarginLeft = 47;
 const legendMarginTop = 10;
 const fmt = d3.format('.0f');
 const fmtP = d3.format(',.2p');
+/* eslint-disable object-curly-newline, no-multi-spaces, key-spacing */
 const targets = [
   { name: 'SF Bay Area', location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
   { name: 'Central LA',  location: [-118.36, 33.92], zoom:  9.9, bearing: 0, speed: 1, curve: 1 },
   { name: 'Sacramento',  location: [-121.50, 38.53], zoom:  9.9, bearing: 0, speed: 1, curve: 1 },
   { name: 'San Diego',   location: [-117.16, 32.72], zoom: 10.4, bearing: 0, speed: 1, curve: 1 },
 ];
+/* eslint-enable object-curly-newline, no-multi-spaces, key-spacing */
 
 const dimensions = [
   {
@@ -56,8 +58,8 @@ const dimensions = [
     divide: 100,
     title: 'DL. Suspension Rate',
     inverse: false,
-    gamma: 0.15, // 0.40, // 0.70,
-    opacity: 0.75, // 0.85,
+    gamma: 0.15,
+    opacity: 0.75,
     invert: false,
     color: 'darkred',
   },
@@ -69,7 +71,7 @@ const dimensions = [
     divide: 100,
     title: 'Poverty Rate',
     inverse: false,
-    gamma: 0.15, // 0.50,
+    gamma: 0.15,
     opacity: 0.80,
     invert: false,
     color: 'mediumblue',
@@ -97,7 +99,7 @@ const dimensions = [
     divide: 100,
     title: 'African American %',
     inverse: false,
-    gamma: 0.15, // .50,
+    gamma: 0.15,
     opacity: 0.80,
     invert: false,
     color: 'purple',
@@ -110,7 +112,7 @@ const dimensions = [
     divide: 100,
     title: 'Latino %',
     inverse: false,
-    gamma: 0.15, // 0.50,
+    gamma: 0.15,
     opacity: 0.80,
     invert: false,
     color: 'teal',
@@ -123,7 +125,7 @@ const dimensions = [
     divide: 100,
     title: 'Asian %',
     inverse: false,
-    gamma: 0.15, // 0.50,
+    gamma: 0.15,
     opacity: 0.80,
     invert: false,
     color: 'indianred',
@@ -136,7 +138,7 @@ const dimensions = [
     divide: 100,
     title: 'White (Non-Latino) %',
     inverse: false,
-    gamma: 0.15, // 0.50,
+    gamma: 0.15,
     opacity: 0.80,
     invert: false,
     color: 'dimgray',
@@ -144,7 +146,7 @@ const dimensions = [
 ];
 
 // Define map layers
-const layerStack0 =  [
+const layerStack0 = [
   {
     id: 'countiesArea',
     interactive: true,
@@ -173,7 +175,7 @@ const layerStack2 = [
     type: 'line',
     paint: {
       'line-color': 'darkred',
-      'line-width': 0, // 0.5,
+      'line-width': 0,
     },
   },
 ];
@@ -200,6 +202,7 @@ function setWindowSize() {
 
 // Calculate gamma (image contrast)
 function calcGamma(val, gamma) {
+  // eslint-disable-next-line no-restricted-properties
   return Math.pow(val, (1 / gamma));
 }
 
@@ -299,7 +302,7 @@ function updateLegend(map, dim) {
   rightScale
     .attr('x', legendMarginLeft + legendElemWidth + 6)
     .attr('y', (d, i) => (legendMarginTop + 3 + i * legendElemHeight))
-    .text((d) => (d.preUnit + d.fmt(d.value  / d.divide) + d.postUnit))
+    .text((d) => (d.preUnit + d.fmt(d.value / d.divide) + d.postUnit))
     .attr('text-anchor', 'start')
     .style('font-size', '10px');
 
@@ -331,7 +334,7 @@ function updateLegend(map, dim) {
     .attr('class', 'percentileTracker')
     .attr('cx', (legendMarginLeft + legendElemWidth / 2))
     .attr('cy', (d) => (d.percentile * legendElemHeight + 1))
-    .attr('r',  (d) => (d.radius))
+    .attr('r', (d) => (d.radius))
     .style('fill', 'black');
 }
 
@@ -459,9 +462,14 @@ function mouseMove(container, e) {
     .style('left', '-40px')
     .style('top', '-40px');
 
-  map.featuresAt(e.point, { radius: 5 }, function (error, features) {
-    if (error) throw error;
-    if (features.length === 0) return;
+  map.featuresAt(e.point, { radius: 5 }, (error, features) => {
+    if (error) {
+      throw error;
+    }
+
+    if (features.length === 0) {
+      return;
+    }
 
     // Separate county and zip code entries in the features array
     const countyInfo = features.filter((d) => d.properties.ALAND !== undefined);
@@ -489,6 +497,7 @@ function mouseMove(container, e) {
     }
 
     // Obtain zip code info from first item in zip code array
+    /* eslint-disable no-multi-spaces, prefer-template, operator-linebreak */
     if (zipInfo.length > 0) {
       item.ZipCode =    zipInfo[0].properties.zip;
       item.Places =     zipInfo[0].properties.Places;
@@ -504,7 +513,6 @@ function mouseMove(container, e) {
     }
 
     // Set the text in the overlay panel
-    /* eslint-disable prefer-template, operator-linebreak */
     const text = [
       '<b>Location: </b>' +
         ' <b>' + item.Places + '</b>' +
@@ -516,11 +524,11 @@ function mouseMove(container, e) {
       '<b>Avg Income: $' + fmtFloat('' + item.IncK) + 'K</b>',
       '<b>Racial composition: </b>' +
         ' Black: ' + fmtPct('' + item.Black / 100) +
-        ' Lat: ' +  fmtPct('' + item.Hisp  / 100) +
+        ' Lat: '   + fmtPct('' + item.Hisp  / 100) +
         ' Asian: ' + fmtPct('' + item.Asian / 100) +
         ' White: ' + fmtPct('' + item.White / 100),
     ];
-    /* eslint-enable prefer-template, operator-linebreak */
+    /* eslint-enable no-multi-spaces, prefer-template, operator-linebreak */
 
     // Update panel
     manageSidePanel(text);
@@ -587,6 +595,13 @@ function updateMainContrast() {
 
   // Update legend
   updateLegend('map', d);
+}
+
+// Map pitch handler
+function tiltSlider() {
+  const elem = d3.select(this);
+  const value = +elem.property('value');
+  map.setPitch(value);
 }
 
 function initMap(container, prop, color, gamma, opacity, levels, filters, title, dims) {
@@ -941,10 +956,10 @@ function mapBoxInit() {
   d3.select('#message').text('Processed data dimensions...');
 
   // Init first (left) map
-  let [d0, d1] = dimensions;
+  const [d1, d2] = dimensions;
   d3.select('#message').text('Initializing first map panel...');
-  map = initMap('map', d0.prop, d0.color, d0.gamma, d0.opacity, d0.dist, d0.filters, d0.title);
-  updateLegend('map', d0);
+  map = initMap('map', d1.prop, d1.color, d1.gamma, d1.opacity, d1.dist, d1.filters, d1.title);
+  updateLegend('map', d1);
 
   // Init second (right) map
   const dimensionList = dimensions
@@ -953,14 +968,14 @@ function mapBoxInit() {
 
   d3.select('#message').text('Initializing second map panel...');
   // eslint-disable-next-line max-len
-  map2 = initMap('map2', d1.prop, d1.color, d1.gamma, d1.opacity, d1.dist, d1.filters, d1.title, dimensionList);
-  updateLegend('map2', d1);
+  map2 = initMap('map2', d2.prop, d2.color, d2.gamma, d2.opacity, d2.dist, d2.filters, d2.title, dimensionList);
+  updateLegend('map2', d2);
 
   d3.select('#message').text('Loading map layers...');
-  d3.select('#contrastRange').property('value', d.gamma * 100);
-  d3.select('#contrastText').text(fmt(d.gamma * 100));
-  d3.select('#opacityRange').property('value', d.opacity * 100);
-  d3.select('#opacityText').text(fmt(d.opacity * 100));
+  d3.select('#contrastRange').property('value', d2.gamma * 100);
+  d3.select('#contrastText').text(fmt(d2.gamma * 100));
+  d3.select('#opacityRange').property('value', d2.opacity * 100);
+  d3.select('#opacityText').text(fmt(d2.opacity * 100));
 
   // Init percentile markers
   setPercentileMarker('map', -1, false);
@@ -999,14 +1014,9 @@ function mapBoxInit() {
     }
   });
 
-  // Map pitch handlers
-  function tiltSlider() {
-    const elem = d3.select(this);
-    const value = +elem.property('value');
-    map.setPitch(value);
-  }
+  // Tilt slider events
   d3.select('#tiltSlider').on('change', function () { tiltSlider.call(this); });
-  d3.select('#tiltSlider').on('input',  function () { tiltSlider.call(this); });
+  d3.select('#tiltSlider').on('input', function () { tiltSlider.call(this); });
 
   // Establish handler for the 'how to use' div
   d3.select('#howToUse').on('click', () => {
@@ -1030,6 +1040,10 @@ function mapBoxInit() {
     setOverlayPos();
   });
 }
+
+/* eslint-enable no-alert, no-console */
+
+// Main entry point
 
 // Set the initial window size
 setWindowSize();
@@ -1082,6 +1096,7 @@ d3.tsv(zipData, (_) => {
     data.forEach((d) => {
       const props = Object.keys(d);
       props.forEach((prop) => {
+        // eslint-disable-next-line no-restricted-globals
         d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop];
       });
     });
