@@ -1,19 +1,19 @@
 /* eslint-disable
+  func-names,
+  key-spacing,
+  no-alert,
   no-console,
   no-multi-spaces,
-  func-names1,
-  object-curly-newline,
-  prefer-arrow-callback,
+  no-nested-ternary,
   no-param-reassign,
-  no-restricted-globals,
-  no-alert,
   no-plusplus,
   no-restricted-properties,
-  object-shorthand,
   no-shadow,
-  key-spacing,
-  no-nested-ternary,
+  object-curly-newline,
+  object-shorthand,
+  prefer-arrow-callback,
 */
+
 /* global d3, mapboxgl, topojson */
 
 // Variables
@@ -22,7 +22,6 @@ let zipData = 'cazipgeo.txt';
 const suspData = dataSet === 'old' ? 'suspensions.txt' : 'suspensions2016.txt';
 const countyTopo = 'county4.json';
 const zipTopo = 'ziptopo6.json';
-// let povDist;
 let counties;
 let zipcodes;
 let data;
@@ -40,7 +39,6 @@ const legendSvgWidth = 128;
 const legendMarginLeft = 47;
 const legendMarginTop = 10;
 const fmt = d3.format('.0f');
-// const fmt1 = d3.format('.1f');
 const fmtP = d3.format(',.2p');
 const targets = [
   { name: 'SF Bay Area', location: [-122.35, 37.78], zoom: 10.0, bearing: 0, speed: 1, curve: 1 },
@@ -62,7 +60,6 @@ const dimensions = [
     opacity: 0.75, // 0.85,
     invert: false,
     color: 'darkred',
-    // dist: d3.range(bins)
   },
   {
     prop: 'povrate',
@@ -236,7 +233,6 @@ function updateLegend(map, dim) {
   });
   if (dim.inverse) tickData.reverse();
 
-  // var svg = d3.select('#' + map + 'LegendSvg').select('g')
   const svg = d3.select(`#${map}LegendSvg`).select('g');
 
   // Append opaque background
@@ -339,7 +335,6 @@ function updateLegend(map, dim) {
     .style('fill', 'black');
 }
 
-
 function setDimension(dim, g, o, c) {
   const d = dimensions[dim];
   if (g !== undefined) {
@@ -393,9 +388,7 @@ function updatePercentileMarker(zipCode) {
   let inverse = false;
   let inverse2 = false;
 
-  if (zipCode === '') {
-    // console.log('remove')
-  } else {
+  if (zipCode !== '') {
     const data = zipData[zipCode];
     if (data) {
       // Handle map (dim 0)
@@ -448,13 +441,12 @@ function manageSidePanel(data) {
   setOverlayPos();
 }
 
-
+// Mouse move handler
 function mouseMove(container, e) {
   const fmtPct = d3.format(',.1%');
   const fmtInt = d3.format(',d');
   const fmtFloat = d3.format('.1f');
 
-  // console.log('container', container);
   const t = container === 'map'
     ? { tracker: 'map2', noTracker: 'map' }
     : { tracker: 'map', noTracker: 'map2' };
@@ -472,13 +464,7 @@ function mouseMove(container, e) {
     if (features.length === 0) return;
 
     // Separate county and zip code entries in the features array
-    // const countyInfo = features.filter(function (d) { if (d.properties.ALAND !== undefined) return true; });
-    // const countyInfo = features.filter(function (d) { return d.properties.ALAND !== undefined; });
     const countyInfo = features.filter((d) => d.properties.ALAND !== undefined);
-
-
-    // const zipInfo = features.filter(function (d) { if (d.properties.City !== undefined) return true; });
-    // const zipInfo = features.filter(function (d) { return d.properties.City !== undefined; });
     const zipInfo = features.filter((d) => d.properties.City !== undefined);
 
     // Clear properties
@@ -518,37 +504,23 @@ function mouseMove(container, e) {
     }
 
     // Set the text in the overlay panel
-    /*
-    var text = [
-      'Zip Code: <b>' + item.ZipCode + '</b>',
-      'Place: <b>' + item.Places + '</b>',
-      'County: <b>' + item.County + '</b>',
-      'Suspensions: <b>' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
-      'Poverty Rate: <b>' + fmtPct(item.povrate / 100) + '</b>',
-      'Population 15y+: <b>' + fmtInt(item.Pop15Plus) + '</b>',
-      'Avg Income: <b>' + fmtFloat('' + item.IncK) + 'K</b>',
-      'Black: <b>' + fmtPct('' + item.Black / 100) + '</b>',
-      'Hispanic: <b>' + fmtPct('' + item.Hisp / 100) + '</b>',
-      'Asian: <b>' + fmtPct('' + item.Asian / 100) + '</b>',
-      'White: <b>' + fmtPct('' + item.White / 100) + '</b>'
-    ];
-    */
-    // console.log('item', item)
+    /* eslint-disable prefer-template, operator-linebreak */
     const text = [
       '<b>Location: </b>' +
-          ' <b>' + item.Places + '</b>' +
-          ' Zip: ' + item.ZipCode +
-          ' (' + item.County + ' County)',
+        ' <b>' + item.Places + '</b>' +
+        ' Zip: ' + item.ZipCode +
+        ' (' + item.County + ' County)',
       '<b>DL. Suspension Rate: ' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
       '<b>Poverty Rate: ' + fmtPct(item.povrate / 100) + '</b>',
       '<b>Population 15y+: ' + fmtInt(item.Pop15Plus) + '</b>',
       '<b>Avg Income: $' + fmtFloat('' + item.IncK) + 'K</b>',
       '<b>Racial composition: </b>' +
-          ' Black: ' + fmtPct('' + item.Black / 100) +
-          ' Lat: ' +  fmtPct('' + item.Hisp  / 100) +
-          ' Asian: ' + fmtPct('' + item.Asian / 100) +
-          ' White: ' + fmtPct('' + item.White / 100)
+        ' Black: ' + fmtPct('' + item.Black / 100) +
+        ' Lat: ' +  fmtPct('' + item.Hisp  / 100) +
+        ' Asian: ' + fmtPct('' + item.Asian / 100) +
+        ' White: ' + fmtPct('' + item.White / 100),
     ];
+    /* eslint-enable prefer-template, operator-linebreak */
 
     // Update panel
     manageSidePanel(text);
@@ -576,10 +548,6 @@ function flyTo(target) {
     // 0 and 1 and returns another number between 0 and 1
     easing: (t) => t,
   });
-}
-
-function fly(idx) {
-  flyTo(targets[idx]);
 }
 
 function rangeContrastEvent() {
@@ -637,9 +605,8 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   const dataLayers = [];
 
   for (let p = 0; p < bins; p++) {
-    // add the layer and filters to the dataLayers array
+    // Add the layer and filters to the dataLayers array
     dataLayers.push({
-      // id: 'dataLayer' + p,
       id: `dataLayer${p}`,
       interactive: true,
       type: 'fill',
@@ -693,7 +660,6 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
 
   // Load the counties and zipcode layers at style.load event
   map.on('style.load', () => {
-    // console.log('style.load...')
     d3.select('#message').text('Adding data layers...');
 
     // Add the two data sources before adding the layers
@@ -717,7 +683,6 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
     d3.select('#message').text('Loading map layers – Done');
   });
 
-  // const cursorTrackerDiv = d3.select('#' + container)
   const cursorTrackerDiv = d3.select(`#${container}`)
     .append('div')
     .attr('id', `${container}TrackerDiv`)
@@ -749,12 +714,11 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   });
 
   // Update the overlay
-  map.on('mousemove', function (e) {
+  map.on('mousemove', (e) => {
     mouseMove(container, e);
   });
 
   // Create title elem above the map
-  // const titleDiv = d3.select('#' + container)
   const titleDiv = d3.select(`#${container}`)
     .append('div')
     .attr('id', `${container}Title`)
@@ -769,8 +733,8 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
     .append('div')
     .attr('id', `${container}Legend`)
     .attr('class', 'legend')
-    .style('right', function () { return container === 'map2' ? null : '20px'; })
-    .style('left', function () { return container === 'map2' ? '20px' : null; });
+    .style('right', () => (container === 'map2' ? null : '20px'))
+    .style('left', () => (container === 'map2' ? '20px' : null));
 
   legendDiv.append('label')
     .style('margin-left', `${(legendMarginLeft - 3)}px`)
@@ -779,19 +743,17 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   legendDiv.append('svg')
     .attr('width', legendSvgWidth)
     .attr('height', legendSvgHeight)
-    // .attr('id', container + 'LegendSvg')
     .attr('id', `${container}LegendSvg`)
     .append('g');
 
   // If dimensions array is passed in, then select elem to allow choice of data series
   if (dims) {
-    // const dataSelectDiv = d3.select('#' + container)
     const dataSelectDiv = d3.select(`#${container}`)
       .append('div')
       .attr('id', `${container}DataSelect`)
       .attr('class', 'dataSelect')
-      .style('right', function () { return container === 'map2' ? '20px' : null; })
-      .style('left', function () { return container === 'map2' ? null : '20px'; });
+      .style('right', () => (container === 'map2' ? '20px' : null))
+      .style('left', () => (container === 'map2' ? null : '20px'));
 
     dataSelectDiv.append('label')
       .text('Select data series');
@@ -800,7 +762,7 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
       .on('change', function () {
         const elem = d3.select(this);
         const value = elem.property('value');
-        dims.slice(1).some(function (d, i) {
+        dims.slice(1).some((d, i) => {
           if (d.prop === value) {
             setDimension(i + 1);
             return true;
@@ -812,8 +774,8 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
       .data(dims.slice(1))
       .enter()
       .append('option')
-      .attr('value', function (d) { return d.prop; })
-      .text(function (d) { return d.title; });
+      .attr('value', (d) => d.prop)
+      .text((d) => d.title);
 
     // Is there a querystring showSettings parameter?
     const query = window.location.search;
@@ -884,15 +846,14 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
       .on('change', function () {
         const elem = d3.select(this);
         const value = elem.property('value');
-        // console.log(value)
         flyTo(targets[+value]);
       });
 
     flyToSelect.selectAll('option')
       .data(targets)
       .enter().append('option')
-      .property('value', function (d, i) { return i; })
-      .text(function (d) { return d.name; });
+      .property('value', (d, i) => i)
+      .text((d) => d.name);
 
     // Create contrast radio buttons
     const contrastData = [
@@ -911,18 +872,17 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
     contrastRadio.selectAll('.contrastRadioBtn')
       .data(contrastData)
       .enter().append('label')
-      .text(function (d) { return d.label; })
+      .text((d) => d.label)
       .style('font-weight', 'normal')
       .append('input')
       .attr('type', 'radio')
       .attr('name', 'contrast')
-      .attr('value', function (d) { return d.value; })
-      .property('checked', function (d) { return d.checked; })
+      .attr('value', (d) => d.value)
+      .property('checked', (d) => d.checked)
       .style('margin-right', '10px')
-      .text(function (d) { return d.value; })
-      .on('change', function () {
+      .text((d) => d.value)
+      .on('change', () => {
         const value = d3.select('input[name=contrast]:checked').property('value');
-        // console.log('value', value)
         currGamma = value / 100;
         const dim = getDimension();
         setDimension(dim);
@@ -934,7 +894,6 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   return map;
 }
 
-
 function mapBoxInit() {
   d3.select('#message').text('Loading vector maps...');
 
@@ -942,23 +901,19 @@ function mapBoxInit() {
   mapboxgl.accessToken = 'pk.eyJ1IjoiYm9lcmljIiwiYSI6IkZEU3BSTjQifQ.XDXwKy2vBdzFEjndnE4N7Q';
 
   // Process dimensions
-  dimensions.forEach(function (dim) {
+  dimensions.forEach((dim) => {
     // Get range
-    const range = d3.extent(zipcodes.features, function (d) {
-      return d.properties[dim.prop];
-    });
+    const range = d3.extent(zipcodes.features, (d) => d.properties[dim.prop]);
     dim.range = range;
 
     // Get values
     const values = zipcodes.features
-      .map(function (d) { return d.properties[dim.prop]; })
-      .sort(function (a, b) { return a - b; });
+      .map((d) => d.properties[dim.prop])
+      .sort((a, b) => a - b);
 
     // Get distribution
     if (!dim.dist) {
-      const dist = d3.range(bins).map(function (d) {
-        return d3.quantile(values, d / bins);
-      });
+      const dist = d3.range(bins).map((d) => d3.quantile(values, d / bins));
       dim.dist = dist;
     }
 
@@ -986,20 +941,20 @@ function mapBoxInit() {
   d3.select('#message').text('Processed data dimensions...');
 
   // Init first (left) map
-  let d = dimensions[0];
+  let [d0, d1] = dimensions;
   d3.select('#message').text('Initializing first map panel...');
-  map = initMap('map', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title);
-  updateLegend('map', d);
+  map = initMap('map', d0.prop, d0.color, d0.gamma, d0.opacity, d0.dist, d0.filters, d0.title);
+  updateLegend('map', d0);
 
   // Init second (right) map
   const dimensionList = dimensions
-    .map(function (d) { return { prop: d.prop, title: d.title }; })
+    .map((d) => ({ prop: d.prop, title: d.title }))
     .slice(0);
-  d = dimensions[1];
 
   d3.select('#message').text('Initializing second map panel...');
-  map2 = initMap('map2', d.prop, d.color, d.gamma, d.opacity, d.dist, d.filters, d.title, dimensionList);
-  updateLegend('map2', d);
+  // eslint-disable-next-line max-len
+  map2 = initMap('map2', d1.prop, d1.color, d1.gamma, d1.opacity, d1.dist, d1.filters, d1.title, dimensionList);
+  updateLegend('map2', d1);
 
   d3.select('#message').text('Loading map layers...');
   d3.select('#contrastRange').property('value', d.gamma * 100);
@@ -1012,13 +967,12 @@ function mapBoxInit() {
   setPercentileMarker('map2', -1, false);
 
   let disable = false;
-  map.on('move', function () {
+  map.on('move', () => {
     if (!disable) {
       const center = map.getCenter();
       const zoom = map.getZoom();
       const pitch = map.getPitch();
       const bearing = map.getBearing();
-      // console.log(center, zoom, pitch, bearing)
 
       disable = true;
       map2.setCenter(center);
@@ -1029,7 +983,7 @@ function mapBoxInit() {
     }
   });
 
-  map2.on('move', function () {
+  map2.on('move', () => {
     if (!disable) {
       const center = map2.getCenter();
       const zoom = map2.getZoom();
@@ -1055,27 +1009,23 @@ function mapBoxInit() {
   d3.select('#tiltSlider').on('input',  function () { tiltSlider.call(this); });
 
   // Establish handler for the 'how to use' div
-  d3.select('#howToUse').on('click', function () {
+  d3.select('#howToUse').on('click', () => {
     let state = d3.select('#instructions').style('display');
     if (state === 'none') state = 'block';
     else state = 'none';
     d3.select('#instructions').style('display', state);
-    d3.select(this).text(function() {
-      return state === 'none' ? 'How to use...' : 'How to use (close)';
-    });
+    d3.select(this).text(() => (state === 'none' ? 'How to use...' : 'How to use (close)'));
 
     setOverlayPos();
   });
 
   // Handler for 'sources' div
-  d3.select('#sourcesTitle').on('click', function () {
+  d3.select('#sourcesTitle').on('click', () => {
     let state = d3.select('#sources').style('display');
     if (state === 'none') state = 'block';
     else state = 'none';
     d3.select('#sources').style('display', state);
-    d3.select(this).text(function () {
-      return state === 'none' ? 'About...' : 'About (close)';
-    });
+    d3.select(this).text(() => (state === 'none' ? 'About...' : 'About (close)'));
 
     setOverlayPos();
   });
@@ -1093,13 +1043,13 @@ window.onresize = () => {
 setOverlayPos();
 
 // Load zip code data
-d3.tsv(zipData, function (_) {
+d3.tsv(zipData, (_) => {
   zipGeo = _;
 
   // Create object for quick lookup of a county's zip codes (used by code that dynamically
   // injects zip code geometry)
   countyZips = {};
-  zipGeo.forEach(function (d) {
+  zipGeo.forEach((d) => {
     const key = d.County.trim();
     if (countyZips[key] === undefined) countyZips[key] = [];
     countyZips[key].push(+d.ZipCode);
@@ -1107,7 +1057,7 @@ d3.tsv(zipData, function (_) {
 
   // Create data structure used to merge zip code and suspension data
   const obj = {};
-  zipGeo.forEach(function (d) {
+  zipGeo.forEach((d) => {
     const key = d.ZipCode.trim();
     obj[key] = d;
     delete obj[key].ZipCode;
@@ -1116,54 +1066,56 @@ d3.tsv(zipData, function (_) {
 
   // Load driver license suspension data
   d3.select('#message', 'Loading driver license suspension data...');
-  d3.tsv(suspData, function (suspensions) {
+  d3.tsv(suspData, (suspensions) => {
     console.log('Loaded driver license suspension data...');
 
     // Merge in the zip geo data and create main data structure
-    data = suspensions.map(function (d) {
+    data = suspensions.map((d) => {
       const zipData = zipGeo[d.ZipCode];
-      Object.keys(zipData).forEach(function (prop) { d[prop] = zipData[prop]; });
+      Object.keys(zipData).forEach((prop) => {
+        d[prop] = zipData[prop];
+      });
       return d;
     });
 
     // Convert to numbers
-    data.forEach(function (d) {
+    data.forEach((d) => {
       const props = Object.keys(d);
-      props.forEach(function (prop) { d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop]; });
+      props.forEach((prop) => {
+        d[prop] = (isNaN(+d[prop])) ? d[prop] : +d[prop];
+      });
     });
 
     // Sort data in ascending order (so highest suspension rates are drawn last and on top
     // of the stack)
-    data.sort(function (a, b) {
-      return a.FTAFTPS100 - b.FTAFTPS100;
-    });
+    data.sort((a, b) => (a.FTAFTPS100 - b.FTAFTPS100));
 
     // Create data structure for quick lookup (used by zip code geometry event handler)
     zipData = {};
-    data.forEach(function (d) {
+    data.forEach((d) => {
       zipData[d.ZipCode] = d;
     });
 
     // Load county geometry
     d3.select('#message').text('Loading county boundary data...');
-    d3.json(countyTopo, function (error, county) {
+    d3.json(countyTopo, (error, county) => {
       counties = topojson.feature(county, county.objects.CaliforniaCounty);
       console.log('Loaded county boundary data...');
 
       // Load zip code geometry
       d3.select('#message').text('Loading zip code boundary data...');
-      d3.json(zipTopo, function (error, zip) {
+      d3.json(zipTopo, (error, zip) => {
         zipcodes = topojson.feature(zip, zip.objects.zip);
         console.log('Loaded zip code boundary data...');
 
         const caZipCodeMin = 90001;
         const caZipCodeMax = 96162;
-        zipcodes.features = zipcodes.features.filter(function (item) {
-          return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
+        zipcodes.features = zipcodes.features.filter((item) => {
+          return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax
         });
 
         const nodataZipCodes = [];
-        zipcodes.features.forEach(function (d) {
+        zipcodes.features.forEach((d) => {
           d.properties.zip = +d.properties.zip;
           const zipCode = d.properties.zip;
 
@@ -1189,9 +1141,7 @@ d3.tsv(zipData, function (_) {
         // Log number of zip codes with no data
         console.log('Zip codes with no data: ', nodataZipCodes.length);
 
-        zipcodes.features = zipcodes.features.filter(function (d) {
-          return !d.properties.noData;
-        });
+        zipcodes.features = zipcodes.features.filter((d) => !d.properties.noData);
         console.log('Zip codes with data: ', zipcodes.features.length);
 
         // Test support for maxboxgl
