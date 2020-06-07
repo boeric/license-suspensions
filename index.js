@@ -182,6 +182,7 @@ const layerStack2 = [
 
 const loader = document.getElementById('loader');
 
+// Functions
 
 // Sets the position of the overlay
 function setOverlayPos() {
@@ -502,7 +503,7 @@ function mouseMove(container, e) {
     Places,
     Pop15Plus,
     povrate,
-    WhiteNH: white,
+    WhiteNH: White,
     ZipCode,
   } = zipCodeData;
 
@@ -533,7 +534,7 @@ function mouseMove(container, e) {
       Places,
       Pop15Plus,
       povrate,
-      white,
+      White,
       ZipCode,
     };
   }
@@ -673,7 +674,7 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   // SF Bay Area based initial view
   const map = new mapboxgl.Map({
     container,
-    maxZoom: 14, // 13
+    maxZoom: 14,
     minZoom: 4,
     zoom: 10,
     center: [-122.35, 37.78],
