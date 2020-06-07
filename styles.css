@@ -1,0 +1,187 @@
+body {
+  margin: 0px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+p, a {
+  font-size: 12px;
+  line-height: 12px;
+  margin: 0px
+  margin-bottom: 10px;
+}
+a {
+  margin-left: 10px;
+}
+h4 {
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+label {
+  font-size: 12px;
+}
+#overlay {
+  padding: 5px;
+  position: absolute;
+  min-width: 200px;
+  max-width: 400px;
+  top: 10px;
+  left: 10px;
+  border: 2px solid #D6D6D6;
+  border-radius: 5px;
+  background-color: white;
+  opacity: 0.8;
+  display: none;
+  z-index: 10000;
+}
+#overlay p {
+  margin: 5px;
+}
+#controls {
+  padding1: 5px;
+  margin-bottom: 15px;
+}
+#controls p {
+  margin: 5px;
+  margin-left: 0px;
+}
+#logoDiv {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+#main {
+  position: absolute;
+  display: none;
+  top: 10px;
+  left: 20px;
+  opacity: 0.85;
+  background-color: white;
+  border-radius: 5px;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 20px;
+  z-index: 10000;
+  width: 220px;
+  border: 2px solid #D6D6D6;
+}
+ul {
+  font-size: 12px;
+  padding-left: 15px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+li {
+  font-style: italic;
+}
+#howToUse:hover {
+  color: red;
+  cursor: pointer;
+}
+#sourcesTitle:hover {
+  color: red;
+  cursor: pointer;
+}
+#sources li {
+  margin-top: 5px;
+}
+#map, #map2 {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  width: 100%;
+  border: 1px solid black;
+}
+#map2 {
+  /* background-color: lightgray; */
+  right: 0px;
+}
+#divider {
+  background-color: gray;
+  width: 8px;
+}
+.header {
+  display: block;
+  color: Black;
+  text-align: center;
+  margin-top: 7px;
+  text-shadow: 0px 0px 10px #fff;
+}
+.headerBox {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: 250px;
+  height: 35px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 5px;
+  border: 2px solid #D6D6D6;
+}
+.dataSelect {
+  position: absolute;
+  bottom: 25px;
+  /* left: 20px; */
+  /* margin: 0 auto; */
+  width: 210px;
+  /* height: 280px; */
+  background-color: rgba(255, 255, 255, 0.85);
+  border: 2px solid #D6D6D6;
+  border-radius: 5px;
+  padding: 10px 15px;
+  display: none;
+}
+.dataSelect label {
+  font-weight: bold;
+}
+.dataSelect select {
+  margin-top: 8px;
+  width: 200px;
+}
+.legendBox {
+  position: absolute;
+  bottom: 200px;
+  right: 20px;
+  /* margin: 0 auto; */
+  width: 80px;
+  height: 400px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border: 1px solid gray;
+  border-radius: 5px;
+  padding: 10px 15px;
+}
+#loader {
+  position: absolute;
+  top: 180px;
+  left: 10px;
+  width: 300px;
+  height: 17px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 1);
+  transition: background 1s ease-out;
+  -webkit-transition: background 1s ease-out;
+  border1: 1px solid red;
+}
+#loader.done {
+  background: rgba(255, 255, 255, 0);
+}
+#loader.hide {
+  display: none;
+}
+#loader .message {
+  position: absolute;
+  font-size: 13px;
+}
+.legend {
+  position: absolute;
+  bottom: 25px;
+  right: 20px;
+  /* margin: 0 auto; */
+  width: 128px;
+  background-color: rgba(255, 255, 255, 0.35);
+  border: 2px solid #D6D6D6;
+  border-radius: 5px;
+  display: none;
+}
+.legend label {
+  font-weight: bold;
+}
