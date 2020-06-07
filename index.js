@@ -462,80 +462,106 @@ function mouseMove(container, e) {
     .style('left', '-40px')
     .style('top', '-40px');
 
-  map.featuresAt(e.point, { radius: 5 }, (error, features) => {
-    if (error) {
-      throw error;
-    }
+  const features = map.queryRenderedFeatures(e.point);
+  let zipCodeData;
+  let countyData;
 
-    if (features.length === 0) {
-      return;
-    }
+  features
+    .filter((d) => {
+      const { source } = d;
+      const validSources = ['counties', 'zipcodes'];
+      return validSources.includes(source);
+    })
+    .forEach((d) => {
+      const { properties, source } = d;
+      switch (source) {
+        case 'counties':
+          countyData = properties;
+          break;
+        case 'zipcodes':
+          zipCodeData = properties;
+          break;
+        default:
+          console.error('invalid source', source);
+      }
+    });
 
-    // Separate county and zip code entries in the features array
-    const countyInfo = features.filter((d) => d.properties.ALAND !== undefined);
-    const zipInfo = features.filter((d) => d.properties.City !== undefined);
+  if (zipCodeData === undefined || countyData === undefined) {
+    return;
+  }
 
-    // Clear properties
-    const item = {
-      County: '',
-      ZipCode: '',
-      Places: '',
-      FTAFTPS100: '',
-      City: '',
-      povrate: '',
-      Pop15Plus: '',
-      IncK: '',
-      Black: '',
-      Hisp: '',
-      Asian: '',
-      White: '',
+  const { NAME: County } = countyData;
+  const {
+    Asian,
+    Black,
+    City,
+    FTAFTPS100,
+    Hisp,
+    IncK,
+    noData,
+    Places,
+    Pop15Plus,
+    povrate,
+    WhiteNH: white,
+    ZipCode,
+  } = zipCodeData;
+
+  let item = {
+    County: '',
+    Asian: '',
+    Black: '',
+    City: '',
+    FTAFTPS100: '',
+    Hisp: '',
+    IncK: '',
+    Places: '',
+    Pop15Plus: '',
+    povrate: '',
+    White: '',
+    ZipCode: '',
+  };
+
+  if (!noData) {
+    item = {
+      County,
+      Asian,
+      Black,
+      City,
+      FTAFTPS100,
+      Hisp,
+      IncK,
+      Places,
+      Pop15Plus,
+      povrate,
+      white,
+      ZipCode,
     };
+  }
 
-    // Obtain county name from first item in county array
-    if (countyInfo.length > 0) {
-      item.County = countyInfo[0].properties.NAME;
-    }
+  // Set the text in the overlay panel
+  /* eslint-disable no-multi-spaces, prefer-template, operator-linebreak */
+  const text = [
+    '<b>Location: </b>' +
+      ' <b>' + item.Places + '</b>' +
+      ' Zip: ' + item.ZipCode +
+      ' (' + item.County + ' County)',
+    '<b>DL. Suspension Rate: ' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
+    '<b>Poverty Rate: ' + fmtPct(item.povrate / 100) + '</b>',
+    '<b>Population 15y+: ' + fmtInt(item.Pop15Plus) + '</b>',
+    '<b>Avg Income: $' + fmtFloat('' + item.IncK) + 'K</b>',
+    '<b>Racial composition: </b>' +
+      ' Black: ' + fmtPct('' + item.Black / 100) +
+      ' Lat: '   + fmtPct('' + item.Hisp  / 100) +
+      ' Asian: ' + fmtPct('' + item.Asian / 100) +
+      ' White: ' + fmtPct('' + item.White / 100),
+  ];
+  /* eslint-enable no-multi-spaces, prefer-template, operator-linebreak */
 
-    // Obtain zip code info from first item in zip code array
-    /* eslint-disable no-multi-spaces, prefer-template, operator-linebreak */
-    if (zipInfo.length > 0) {
-      item.ZipCode =    zipInfo[0].properties.zip;
-      item.Places =     zipInfo[0].properties.Places;
-      item.FTAFTPS100 = zipInfo[0].properties.FTAFTPS100;
-      item.City =       zipInfo[0].properties.City;
-      item.povrate =    zipInfo[0].properties.povrate;
-      item.Pop15Plus =  zipInfo[0].properties.Pop15Plus;
-      item.IncK =       zipInfo[0].properties.IncK;
-      item.Black =      zipInfo[0].properties.Black;
-      item.Hisp =       zipInfo[0].properties.Hisp;
-      item.Asian =      zipInfo[0].properties.Asian;
-      item.White =      zipInfo[0].properties.WhiteNH;
-    }
+  // Update panel
+  manageSidePanel(text);
 
-    // Set the text in the overlay panel
-    const text = [
-      '<b>Location: </b>' +
-        ' <b>' + item.Places + '</b>' +
-        ' Zip: ' + item.ZipCode +
-        ' (' + item.County + ' County)',
-      '<b>DL. Suspension Rate: ' + fmtPct(item.FTAFTPS100 / 100) + '</b>',
-      '<b>Poverty Rate: ' + fmtPct(item.povrate / 100) + '</b>',
-      '<b>Population 15y+: ' + fmtInt(item.Pop15Plus) + '</b>',
-      '<b>Avg Income: $' + fmtFloat('' + item.IncK) + 'K</b>',
-      '<b>Racial composition: </b>' +
-        ' Black: ' + fmtPct('' + item.Black / 100) +
-        ' Lat: '   + fmtPct('' + item.Hisp  / 100) +
-        ' Asian: ' + fmtPct('' + item.Asian / 100) +
-        ' White: ' + fmtPct('' + item.White / 100),
-    ];
-    /* eslint-enable no-multi-spaces, prefer-template, operator-linebreak */
-
-    // Update panel
-    manageSidePanel(text);
-
-    // Update percentile marker
-    updatePercentileMarker(item.ZipCode);
-  });
+  // Update percentile marker
+  updatePercentileMarker(item.ZipCode);
 }
 
 function flyTo(target) {
@@ -642,20 +668,20 @@ function initMap(container, prop, color, gamma, opacity, levels, filters, title,
   // Init the map
   d3.select('#message').text('Creating map...');
 
-  // New SF based initial view
+  // SF Bay Area based initial view
   const map = new mapboxgl.Map({
     container,
     maxZoom: 14, // 13
     minZoom: 4,
     zoom: 10,
     center: [-122.35, 37.78],
-    style: 'mapbox://styles/mapbox/bright-v8',
+    style: 'mapbox://styles/mapbox/streets-v11',
     hash: false,
   });
   d3.select('#message').text('Created map...');
 
   // Add controls to the map, and event handler
-  map.addControl(new mapboxgl.Navigation());
+  map.addControl(new mapboxgl.NavigationControl());
   d3.selectAll('.mapboxgl-ctrl-compass').on('click', () => {
     d3.select('#tiltSlider').property('value', 0);
   });
@@ -1041,9 +1067,7 @@ function mapBoxInit() {
   });
 }
 
-/* eslint-enable no-alert, no-console */
-
-// Main entry point
+// Entry point
 
 // Set the initial window size
 setWindowSize();
@@ -1126,7 +1150,7 @@ d3.tsv(zipData, (_) => {
         const caZipCodeMin = 90001;
         const caZipCodeMax = 96162;
         zipcodes.features = zipcodes.features.filter((item) => {
-          return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax
+          return item.properties.zip >= caZipCodeMin && item.properties.zip <= caZipCodeMax;
         });
 
         const nodataZipCodes = [];
